@@ -112,9 +112,9 @@ void loop() {
                         int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
                         for (int offset = 0; offset < c; offset++) {
                           if (cursor == 0 && offset == 0) {
-                            lastEntry = buff[0];
+                            lastEntry = buff[8];
                             lastEntry = lastEntry % 2;
-                            offset++;
+                            offset += 9;
                           }
                           counter = buff[offset];
                           if (counter == 255) {
@@ -122,8 +122,8 @@ void loop() {
                           #if DEBUG == 1
                               Serial.print(lastEntry);
                           #endif
-                              if (i % X_RES == 0)
                             #if DEBUG == 1
+                              if (i % X_RES == 0)
                                 Serial.println("");
                             #endif
                               display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
@@ -134,8 +134,8 @@ void loop() {
                           #if DEBUG == 1
                               Serial.print(lastEntry);
                           #endif
-                              if (i % X_RES == 0)
                             #if DEBUG == 1
+                              if (i % X_RES == 0)
                                 Serial.println("");
                             #endif
                               display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
