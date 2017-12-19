@@ -3,6 +3,7 @@
 #define DEVICE_TYPE 3
 #define DEBUG 1
 #define MAX_SLEEP 2000
+#define MIN_SLEEP 10
 
 #if DEVICE_TYPE == 0
   #define X_RES 384
@@ -29,6 +30,8 @@
 #include <GxIO/GxIO_SPI/GxIO_SPI.cpp>
 #include <GxIO/GxIO.cpp>
 
+#include <Fonts/FreeMonoBold9pt7b.h>
+
 GxIO_Class io(SPI, 15, 0, 2);
 GxEPD_Class display(io, 2, 12);
 
@@ -43,6 +46,9 @@ uint32_t calculateCRC32(const uint8_t *data, size_t length);
 
 // helper function to dump memory contents as hex
 void printMemory();
+
+//number of failed attempts to connect to wifi
+uint16_t attempts = 0;
 
 // Structure which will be stored in RTC memory.
 // First field is CRC32, which is calculated based on the
@@ -92,17 +98,61 @@ void sleep() {
     rtcData.crc32 = calculateCRC32(((uint8_t*) &rtcData) + 4, sizeof(rtcData) - 4);
     // Write struct to RTC memory
     if (ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
-      Serial.println("Write: ");
-      printMemory();
-      Serial.println();
+      //Serial.println("Write: ");
+      //printMemory();
+      //Serial.println();
     }
 
     free(currentTime);
     free(nextTime);
     free(elapsedTime);
-    
+    if (sleepTime + *((int32_t*) driftSeconds) < MIN_SLEEP) {
+      #if DEBUG == 1
+        Serial.print("Sleeping for the minimum of");
+        Serial.print(MIN_SLEEP);
+        Serial.println(" seconds");
+        Serial.print("Drift seconds: ");
+        Serial.println(*((int32_t*) driftSeconds));
+      #endif
+      ESP.deepSleep(MIN_SLEEP * 1000000);
+    }
+    #if DEBUG == 1
+      Serial.print("Sleeping for ");
+      Serial.print((sleepTime + *((int32_t*) driftSeconds)));
+      Serial.println(" seconds");
+      Serial.print("Drift seconds: ");
+      Serial.println(*((int32_t*) driftSeconds));
+    #endif
     ESP.deepSleep((sleepTime + *((int32_t*) driftSeconds)) * 1000000);
     free(driftSeconds);
+}
+
+void dumpToScreen(String reason) {
+  display.init();
+  display.setRotation(ROTATION);
+  display.fillScreen(GxEPD_WHITE);
+  display.setTextColor(GxEPD_BLACK);
+  display.setFont(&FreeMonoBold9pt7b);
+  display.setCursor(0, 0);
+  display.println();
+  display.println(reason);
+  display.println("SSID:BYUSecure");
+  byte mac[6];
+  WiFi.macAddress(mac);
+  display.print("MAC:");
+  display.print(mac[5],HEX);
+  display.print(":");
+  display.print(mac[4],HEX);
+  display.print(":");
+  display.print(mac[3],HEX);
+  display.print(":");
+  display.print(mac[2],HEX);
+  display.print(":");
+  display.print(mac[1],HEX);
+  display.print(":");
+  display.println(mac[0],HEX);
+  
+  display.update();
 }
 
 void setup() {
@@ -154,11 +204,12 @@ void setup() {
       if (crcOfData != rtcData.crc32) {
         #if DEBUG == 1
           Serial.println("CRC32 in RTC memory doesn't match CRC32 of data. Data is probably invalid!");
+        #endif
           *((uint32_t*) currentTime) = 0;
           *((uint32_t*) nextTime) = 0;
           *((uint32_t*) elapsedTime) = 0;
           *((int32_t*) driftSeconds) = 0;
-        #endif
+          dumpToScreen("First boot");
       }
       else {
         #if DEBUG == 1
@@ -195,7 +246,7 @@ void loop() {
     #endif
 
         // configure server and url
-        http.begin("http://door-display.groups.et.byu.net/30aea40b54c.compressed");
+        http.begin("http://door-display.groups.et.byu.net/get_image.php?mac_address=30aea40b54b&voltage=0");
 
     #if DEBUG == 1
         Serial.print("[HTTP] GET...\n");
@@ -259,24 +310,20 @@ void loop() {
                           if (counter == 255) {
                             for (int16_t i = cursor; i < cursor + 255; i++) {
                           #if DEBUG == 1
-                              Serial.print(lastEntry);
+                              //Serial.print(lastEntry);
+                              //if (i % X_RES == 0)
+                                //Serial.println("");
                           #endif
-                            #if DEBUG == 1
-                              if (i % X_RES == 0)
-                                Serial.println("");
-                            #endif
                               display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
                             }
                             cursor += 255;
                           } else {
                             for (int16_t i = cursor; i < cursor + counter; i++) {
                           #if DEBUG == 1
-                              Serial.print(lastEntry);
+                              //Serial.print(lastEntry);
+                              //if (i % X_RES == 0)
+                                //Serial.println("");
                           #endif
-                            #if DEBUG == 1
-                              if (i % X_RES == 0)
-                                Serial.println("");
-                            #endif
                               display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
                             }
                             lastEntry ^= 0x01;
@@ -304,13 +351,14 @@ void loop() {
         } else {
         #if DEBUG == 1
             Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+            sleep();
         #endif
         }
 
         http.end();
     }
-
-    delay(10000);
+    attempts++;
+    delay(1000);
 }
 
 uint32_t calculateCRC32(const uint8_t *data, size_t length)
