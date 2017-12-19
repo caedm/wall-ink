@@ -66,6 +66,18 @@ uint8_t* elapsedTime;
 uint8_t* driftSeconds;
 uint8_t* crashSleepSeconds;
 
+String url = "";
+
+void setURL() {
+  url += "http://door-display.groups.et.byu.net/get_image.php?mac_address=";
+  String mac = WiFi.macAddress();
+  while(mac.indexOf(':') != -1) {
+    mac.remove(mac.indexOf(':'), 1);
+  }
+  url += mac;
+  url += "&voltage=0";
+}
+
 void crash(String reason) {
   if (*((uint32_t*) crashSleepSeconds) > 3600) {
     dumpToScreen(reason);
@@ -193,31 +205,43 @@ void dumpToScreen(String reason) {
   display.setFont(&FreeMonoBold9pt7b);
   display.setCursor(0, 0);
   display.println();
+  
   display.println(reason);
-  display.println("SSID:BYUSecure");
-  byte mac[6];
-  WiFi.macAddress(mac);
-  display.print("MAC:");
-  display.print(mac[5],HEX);
-  display.print(":");
-  display.print(mac[4],HEX);
-  display.print(":");
-  display.print(mac[3],HEX);
-  display.print(":");
-  display.print(mac[2],HEX);
-  display.print(":");
-  display.print(mac[1],HEX);
-  display.print(":");
-  display.println(mac[0],HEX);
+  
+  display.print("SSID:");
+  display.println(WiFi.SSID());
+
+  display.print("Router MAC Address:");
+  display.println(WiFi.BSSIDstr(0));
+
+  display.print("IP address:");
+  display.println(WiFi.localIP());
+
+  display.print("Gateway IP:");
+  display.println(WiFi.gatewayIP());
+  
+  Serial.print("RSSI:");
+  Serial.print(WiFi.RSSI());
+  Serial.println("dbm");
+
+  display.print("MAC Address:");
+  display.println(WiFi.macAddress());
+
+  display.print("URL:");
+  setURL();
+  display.println(url);
   
   display.print("Last successful attempt at:");
   display.println(*((uint32_t*) currentTime));
+
+  display.print("Original planned wakeup time:");
+  display.println(*((uint32_t*) nextTime));
 
   display.print("Last unsuccessful attempt at:");
   display.println(*((uint32_t*) currentTime) + *((uint32_t*) elapsedTime));
   
   display.print("Next attempt in:");
-  display.print(*((uint32_t*) crashSleepSeconds));
+  display.print(*((uint32_t*) crashSleepSeconds) * 4);
   display.println(" seconds");
   
   display.update();
@@ -320,7 +344,8 @@ void loop() {
     #endif
 
         // configure server and url
-        http.begin("http://door-display.groups.et.byu.net/get_image.php?mac_address=30aea40b54b&voltage=0");
+        setURL();
+        http.begin(url);
 
     #if DEBUG == 1
         Serial.print("[HTTP] GET...\n");
