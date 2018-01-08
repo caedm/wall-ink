@@ -1,3 +1,5 @@
+//Sketch uses esp8266 board version 2.3.0
+
 #include <GxEPD.h>
 
 #define DEVICE_TYPE 2
