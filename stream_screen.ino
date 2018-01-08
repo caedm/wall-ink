@@ -1,8 +1,8 @@
 #include <GxEPD.h>
 
-#define DEVICE_TYPE 3
-#define DEBUG 1
-#define MAX_SLEEP 2000
+#define DEVICE_TYPE 1
+#define DEBUG 0
+#define MAX_SLEEP 1950
 #define MIN_SLEEP 10
 
 #if DEVICE_TYPE == 0
@@ -39,6 +39,8 @@ GxEPD_Class display(io, 2, 12);
 #include <ESP8266WiFiMulti.h>
 #include <ESP8266HTTPClient.h>
 
+ADC_MODE(ADC_VCC);  //needed to read the supply voltage
+
 ESP8266WiFiMulti WiFiMulti;
 
 // CRC function used to ensure data validity
@@ -69,19 +71,77 @@ uint8_t* crashSleepSeconds;
 String url = "";
 
 void setURL() {
+  url = "";
   url += "http://door-display.groups.et.byu.net/get_image.php?mac_address=";
+  //url += "http://10.2.124.205/~johnathan/get_image.php?mac_address=";
   String mac = WiFi.macAddress();
   while(mac.indexOf(':') != -1) {
     mac.remove(mac.indexOf(':'), 1);
   }
   url += mac;
-  url += "&voltage=0";
+  url += "&voltage=";
+  float volts = 0.00f;
+  volts = ESP.getVcc();
+  url += String(volts/1024.00f);
+  #if DEBUG == 1
+    Serial.print("Voltage: ");
+    Serial.println(volts/1024.00f);
+  #endif
 }
+/*
+void setURL() {
+  url = "http://10.2.124.205/~johnathan/60019431677B.compressed";
+}
+*/
 
 void crash(String reason) {
   if (*((uint32_t*) crashSleepSeconds) > 3600) {
     dumpToScreen(reason);
   }
+
+  #if DEBUG == 1
+    Serial.println();
+    Serial.println("Unable to retrieve image from server");
+    
+    Serial.println(reason);
+    
+    Serial.print("SSID:");
+    Serial.println(WiFi.SSID());
+  
+    Serial.print("Router MAC Address:");
+    Serial.println(WiFi.BSSIDstr());
+  
+    Serial.print("IP address:");
+    Serial.println(WiFi.localIP());
+  
+    Serial.print("Gateway IP:");
+    Serial.println(WiFi.gatewayIP());
+    
+    Serial.print("RSSI:");
+    Serial.print(WiFi.RSSI());
+    Serial.println("dbm");
+  
+    Serial.print("MAC Address:");
+    Serial.println(WiFi.macAddress());
+  
+    Serial.print("URL:");
+    setURL();
+    Serial.println(url);
+    
+    Serial.print("Last successful attempt at:");
+    Serial.println(*((uint32_t*) currentTime));
+  
+    Serial.print("Original planned wakeup time:");
+    Serial.println(*((uint32_t*) nextTime));
+  
+    Serial.print("Last unsuccessful attempt at:");
+    Serial.println(*((uint32_t*) currentTime) + *((uint32_t*) elapsedTime));
+    
+    Serial.print("Next attempt in:");
+    Serial.print(*((uint32_t*) crashSleepSeconds) * 4);
+    Serial.println(" seconds");
+  #endif
+  
   *((uint32_t*) crashSleepSeconds) *= 4;
   if (*((uint32_t*) crashSleepSeconds) > 86400) {
     *((uint32_t*) crashSleepSeconds) = 86400;
@@ -122,11 +182,11 @@ void crash(String reason) {
     //Serial.println();
   }
 
-  free(currentTime);
-  free(nextTime);
-  free(elapsedTime);
+  //free(currentTime);
+  //free(nextTime);
+  //free(elapsedTime);
   ESP.deepSleep(*((uint32_t*) crashSleepSeconds) * 1000000);
-  free(crashSleepSeconds);
+  //free(crashSleepSeconds);
   
 }
 
@@ -172,10 +232,21 @@ void sleep() {
       //Serial.println();
     }
 
-    free(currentTime);
-    free(nextTime);
-    free(elapsedTime);
-    free(crashSleepSeconds);
+    #if DEBUG == 1
+      Serial.print("currentTime: ");
+      Serial.println(*((uint32_t*) currentTime));
+      Serial.print("nextTime: ");
+      Serial.println(*((uint32_t*) nextTime));
+      Serial.print("elapsedTime: ");
+      Serial.println(*((uint32_t*) elapsedTime));
+      Serial.print("crashSleepSeconds: ");
+      Serial.println(*((uint32_t*) crashSleepSeconds));
+    #endif
+
+    //free(currentTime);
+    //free(nextTime);
+    //free(elapsedTime);
+    //free(crashSleepSeconds);
     if (sleepTime + *((int32_t*) driftSeconds) < MIN_SLEEP) {
       #if DEBUG == 1
         Serial.print("Sleeping for the minimum of");
@@ -187,14 +258,14 @@ void sleep() {
       ESP.deepSleep(MIN_SLEEP * 1000000);
     }
     #if DEBUG == 1
-      Serial.print("Sleeping for ");
-      Serial.print((sleepTime + *((int32_t*) driftSeconds)));
+      Serial.print("sleepTime: ");
+      Serial.print(sleepTime);
       Serial.println(" seconds");
-      Serial.print("Drift seconds: ");
+      Serial.print("Drift seconds added to the above figure: ");
       Serial.println(*((int32_t*) driftSeconds));
     #endif
     ESP.deepSleep((sleepTime + *((int32_t*) driftSeconds)) * 1000000);
-    free(driftSeconds);
+    ///free(driftSeconds);
 }
 
 void dumpToScreen(String reason) {
@@ -204,7 +275,11 @@ void dumpToScreen(String reason) {
   display.setTextColor(GxEPD_BLACK);
   display.setFont(&FreeMonoBold9pt7b);
   display.setCursor(0, 0);
+  
+  display.setFont(&FreeMonoBold9pt7b);
   display.println();
+  display.println("Unable to retrieve image from server");
+  display.setFont(&FreeMonoBold9pt7b);
   
   display.println(reason);
   
@@ -212,7 +287,7 @@ void dumpToScreen(String reason) {
   display.println(WiFi.SSID());
 
   display.print("Router MAC Address:");
-  display.println(WiFi.BSSIDstr(0));
+  display.println(WiFi.BSSIDstr());
 
   display.print("IP address:");
   display.println(WiFi.localIP());
@@ -220,9 +295,9 @@ void dumpToScreen(String reason) {
   display.print("Gateway IP:");
   display.println(WiFi.gatewayIP());
   
-  Serial.print("RSSI:");
-  Serial.print(WiFi.RSSI());
-  Serial.println("dbm");
+  display.print("RSSI:");
+  display.print(WiFi.RSSI());
+  display.println("dbm");
 
   display.print("MAC Address:");
   display.println(WiFi.macAddress());
@@ -248,14 +323,39 @@ void dumpToScreen(String reason) {
 }
 
 void setup() {
-
     #if DEBUG == 1
       Serial.begin(921600);
       // Serial.setDebugOutput(true);
+
+      for(uint8_t t = 4; t > 0; t--) {
+          Serial.printf("[SETUP] WAIT %d...\n", t);
+          Serial.flush();
+          delay(100);
+      }
   
       Serial.println();
       Serial.println();
-      Serial.println();
+      Serial.println("Establishing WiFi connection");
+    #endif
+    /*
+    uint8_t bssid[6] = {0x00,0x0f,0x7d,0xdd,0x40,0x31};
+    WiFi.persistent(false);
+    IPAddress staticIP(10,10,104,227);
+    IPAddress gateway(10,10,104,1);
+    IPAddress subnet(255,255,248,0);
+    WiFi.begin("BYUSecure", "byuwireless", 11, bssid);
+    WiFi.config(staticIP, gateway, subnet);
+    WiFi.waitForConnectResult();
+    */
+    WiFi.begin("BYUSecure", "byuwireless");
+    #if DEBUG == 1
+      Serial.println("Connected");
+      Serial.print("IP address:");
+      Serial.println(WiFi.localIP());
+      Serial.print("Gateway IP:");
+      Serial.println(WiFi.gatewayIP());
+      Serial.print("Subnet mask: ");
+      Serial.println(WiFi.subnetMask());
     #endif
 
     currentTime = (uint8_t*) malloc(4);
@@ -305,7 +405,7 @@ void setup() {
           *((uint32_t*) currentTime) = 0;
           *((uint32_t*) nextTime) = 0;
           *((uint32_t*) elapsedTime) = 0;
-          *((int32_t*) driftSeconds) = 0;
+          *((int32_t*) driftSeconds) = 30;
           *((uint32_t*) crashSleepSeconds) = 15;
           dumpToScreen("First boot");
       }
@@ -321,42 +421,35 @@ void setup() {
       sleep();
     }
 
-    #if DEBUG == 1
-      for(uint8_t t = 4; t > 0; t--) {
-          Serial.printf("[SETUP] WAIT %d...\n", t);
-          Serial.flush();
-          delay(1000);
-      }
-    #endif
-
-    WiFiMulti.addAP("BYUSecure", "byuwireless");
-
 }
 
 void loop() {
     // wait for WiFi connection
-    if((WiFiMulti.run() == WL_CONNECTED)) {
+    if((WiFi.status() == WL_CONNECTED)) {
 
         HTTPClient http;
 
-    #if DEBUG == 1
+      #if DEBUG == 1
         Serial.print("[HTTP] begin...\n");
-    #endif
+      #endif
 
         // configure server and url
         setURL();
         http.begin(url);
 
-    #if DEBUG == 1
+      #if DEBUG == 1
         Serial.print("[HTTP] GET...\n");
-    #endif
+      #endif
         // start connection and send HTTP header
         int httpCode = http.GET();
         if(httpCode > 0) {
             // HTTP header has been send and Server response header has been handled
-        #if DEBUG == 1
+            if (httpCode == 404) {
+              crash("Error:404");
+            }
+          #if DEBUG == 1
             Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-        #endif
+          #endif
 
             // file found at server
             if(httpCode == HTTP_CODE_OK) {
@@ -367,6 +460,7 @@ void loop() {
                 uint8_t lastEntry;
                 int16_t counter = 0;
                 int16_t y = 0;
+                boolean initialized = false;
                 // get length of document (is -1 when Server sends no Content-Length header)
                 int len = http.getSize();
 
@@ -385,7 +479,8 @@ void loop() {
                         // read up to 128 byte
                         int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
                         for (int offset = 0; offset < c; offset++) {
-                          if (cursor == 0 && offset == 0) {
+                          if (!initialized) {
+                            initialized = true;
                             uint32_t predictedTime = *((uint32_t*) currentTime) + *((uint32_t*) elapsedTime);
                             currentTime[0] = buff[0];
                             currentTime[1] = buff[1];
@@ -395,10 +490,16 @@ void loop() {
                             nextTime[1] = buff[5];
                             nextTime[2] = buff[6];
                             nextTime[3] = buff[7];
+                            #if DEBUG == 1
+                              Serial.print("Updated currentTime: ");
+                              Serial.println(*((uint32_t*) currentTime));
+                              Serial.print("Updated nextTime: ");
+                              Serial.println(*((uint32_t*) nextTime));
+                            #endif
                             *((uint32_t*) crashSleepSeconds) = 15;
-                            if (*((uint32_t*) currentTime) > predictedTime) {
+                            if (*((uint32_t*) currentTime) > predictedTime && *((uint32_t*) elapsedTime) > 100) {
                               *((int32_t*) driftSeconds) -= 1;
-                            } else {
+                            } else if (*((uint32_t*) currentTime) < predictedTime && *((uint32_t*) elapsedTime) > 100) {
                               *((int32_t*) driftSeconds) += 1;
                             }
                             *((uint32_t*) elapsedTime) = 0;
@@ -409,21 +510,21 @@ void loop() {
                           counter = buff[offset];
                           if (counter == 255) {
                             for (int16_t i = cursor; i < cursor + 255; i++) {
-                          #if DEBUG == 1
-                              //Serial.print(lastEntry);
-                              //if (i % X_RES == 0)
-                                //Serial.println("");
-                          #endif
+                              #if DEBUG == 1
+                                  //Serial.print(lastEntry);
+                                  //if (i % X_RES == 0)
+                                    //Serial.println("");
+                              #endif
                               display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
                             }
                             cursor += 255;
                           } else {
                             for (int16_t i = cursor; i < cursor + counter; i++) {
-                          #if DEBUG == 1
-                              //Serial.print(lastEntry);
-                              //if (i % X_RES == 0)
-                                //Serial.println("");
-                          #endif
+                              #if DEBUG == 1
+                                  //Serial.print(lastEntry);
+                                  //if (i % X_RES == 0)
+                                    //Serial.println("");
+                              #endif
                               display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
                             }
                             lastEntry ^= 0x01;
@@ -459,10 +560,10 @@ void loop() {
         http.end();
     }
     attempts++;
-    if (attempts > 10) {
+    if (attempts > 100) {
       crash("Error connecting to WiFi");
     }
-    delay(1000);
+    delay(100);
 }
 
 uint32_t calculateCRC32(const uint8_t *data, size_t length)
