@@ -1,7 +1,7 @@
 #include <GxEPD.h>
 
-#define DEVICE_TYPE 1
-#define DEBUG 0
+#define DEVICE_TYPE 2
+#define DEBUG 1
 #define MAX_SLEEP 1950
 #define MIN_SLEEP 10
 
@@ -46,9 +46,6 @@ ESP8266WiFiMulti WiFiMulti;
 // CRC function used to ensure data validity
 uint32_t calculateCRC32(const uint8_t *data, size_t length);
 
-// helper function to dump memory contents as hex
-void printMemory();
-
 //number of failed attempts to connect to wifi
 uint16_t attempts = 0;
 
@@ -59,14 +56,12 @@ uint16_t attempts = 0;
 // We use byte array as an example.
 struct {
   uint32_t crc32;
-  byte data[508];
+  uint32_t currentTime;
+  uint32_t nextTime;
+  uint32_t elapsedTime;
+  int32_t driftSeconds;
+  uint32_t crashSleepSeconds;
 } rtcData;
-
-uint8_t* currentTime;
-uint8_t* nextTime;
-uint8_t* elapsedTime;
-uint8_t* driftSeconds;
-uint8_t* crashSleepSeconds;
 
 String url = "";
 
@@ -95,7 +90,7 @@ void setURL() {
 */
 
 void crash(String reason) {
-  if (*((uint32_t*) crashSleepSeconds) > 3600) {
+  if (rtcData.crashSleepSeconds > 3600) {
     dumpToScreen(reason);
   }
 
@@ -129,50 +124,25 @@ void crash(String reason) {
     Serial.println(url);
     
     Serial.print("Last successful attempt at:");
-    Serial.println(*((uint32_t*) currentTime));
+    Serial.println(rtcData.currentTime);
   
     Serial.print("Original planned wakeup time:");
-    Serial.println(*((uint32_t*) nextTime));
+    Serial.println(rtcData.nextTime);
   
     Serial.print("Last unsuccessful attempt at:");
-    Serial.println(*((uint32_t*) currentTime) + *((uint32_t*) elapsedTime));
+    Serial.println(rtcData.currentTime + rtcData.elapsedTime);
     
     Serial.print("Next attempt in:");
-    Serial.print(*((uint32_t*) crashSleepSeconds) * 4);
+    Serial.print(rtcData.crashSleepSeconds * 4);
     Serial.println(" seconds");
   #endif
   
-  *((uint32_t*) crashSleepSeconds) *= 4;
-  if (*((uint32_t*) crashSleepSeconds) > 86400) {
-    *((uint32_t*) crashSleepSeconds) = 86400;
+  rtcData.crashSleepSeconds *= 4;
+  if (rtcData.crashSleepSeconds > 86400) {
+    rtcData.crashSleepSeconds = 86400;
   }
-  *((uint32_t*) elapsedTime) += *((uint32_t*) crashSleepSeconds);
-  //write times to rtcData struct
-  rtcData.data[0] = currentTime[0];
-  rtcData.data[1] = currentTime[1];
-  rtcData.data[2] = currentTime[2];
-  rtcData.data[3] = currentTime[3];
-  rtcData.data[4] = nextTime[0];
-  rtcData.data[5] = nextTime[1];
-  rtcData.data[6] = nextTime[2];
-  rtcData.data[7] = nextTime[3];
-  rtcData.data[8] = elapsedTime[0];
-  rtcData.data[9] = elapsedTime[1];
-  rtcData.data[10] = elapsedTime[2];
-  rtcData.data[11] = elapsedTime[3];
-  rtcData.data[12] = driftSeconds[0];
-  rtcData.data[13] = driftSeconds[1];
-  rtcData.data[14] = driftSeconds[2];
-  rtcData.data[15] = driftSeconds[3];
-  rtcData.data[16] = crashSleepSeconds[0];
-  rtcData.data[17] = crashSleepSeconds[1];
-  rtcData.data[18] = crashSleepSeconds[2];
-  rtcData.data[19] = crashSleepSeconds[3];
+  rtcData.elapsedTime += rtcData.crashSleepSeconds;
   
-  // Generate new data set for the struct
-  for (int i = 20; i < sizeof(rtcData); i++) {
-    rtcData.data[i] = random(0, 128);
-  }
   // Update CRC32 of data
   rtcData.crc32 = calculateCRC32(((uint8_t*) &rtcData) + 4, sizeof(rtcData) - 4);
   // Write struct to RTC memory
@@ -182,47 +152,17 @@ void crash(String reason) {
     //Serial.println();
   }
 
-  //free(currentTime);
-  //free(nextTime);
-  //free(elapsedTime);
-  ESP.deepSleep(*((uint32_t*) crashSleepSeconds) * 1000000);
-  //free(crashSleepSeconds);
+  ESP.deepSleep(rtcData.crashSleepSeconds * 1000000);
   
 }
 
 void sleep() {
-    uint32_t sleepTime = *((uint32_t*) nextTime) - *((uint32_t*) currentTime) - *((uint32_t*) elapsedTime);
+    uint32_t sleepTime = rtcData.nextTime - rtcData.currentTime - rtcData.elapsedTime;
     if (sleepTime > MAX_SLEEP) {
       sleepTime = MAX_SLEEP;
     }
-    *((uint32_t*) elapsedTime) += sleepTime;
+    rtcData.elapsedTime += sleepTime;
 
-    //write times to rtcData struct
-    rtcData.data[0] = currentTime[0];
-    rtcData.data[1] = currentTime[1];
-    rtcData.data[2] = currentTime[2];
-    rtcData.data[3] = currentTime[3];
-    rtcData.data[4] = nextTime[0];
-    rtcData.data[5] = nextTime[1];
-    rtcData.data[6] = nextTime[2];
-    rtcData.data[7] = nextTime[3];
-    rtcData.data[8] = elapsedTime[0];
-    rtcData.data[9] = elapsedTime[1];
-    rtcData.data[10] = elapsedTime[2];
-    rtcData.data[11] = elapsedTime[3];
-    rtcData.data[12] = driftSeconds[0];
-    rtcData.data[13] = driftSeconds[1];
-    rtcData.data[14] = driftSeconds[2];
-    rtcData.data[15] = driftSeconds[3];
-    rtcData.data[16] = crashSleepSeconds[0];
-    rtcData.data[17] = crashSleepSeconds[1];
-    rtcData.data[18] = crashSleepSeconds[2];
-    rtcData.data[19] = crashSleepSeconds[3];
-    
-    // Generate new data set for the struct
-    for (int i = 20; i < sizeof(rtcData); i++) {
-      rtcData.data[i] = random(0, 128);
-    }
     // Update CRC32 of data
     rtcData.crc32 = calculateCRC32(((uint8_t*) &rtcData) + 4, sizeof(rtcData) - 4);
     // Write struct to RTC memory
@@ -234,26 +174,26 @@ void sleep() {
 
     #if DEBUG == 1
       Serial.print("currentTime: ");
-      Serial.println(*((uint32_t*) currentTime));
+      Serial.println(rtcData.currentTime);
       Serial.print("nextTime: ");
-      Serial.println(*((uint32_t*) nextTime));
+      Serial.println(rtcData.nextTime);
       Serial.print("elapsedTime: ");
-      Serial.println(*((uint32_t*) elapsedTime));
+      Serial.println(rtcData.elapsedTime);
       Serial.print("crashSleepSeconds: ");
-      Serial.println(*((uint32_t*) crashSleepSeconds));
+      Serial.println(rtcData.crashSleepSeconds);
     #endif
 
     //free(currentTime);
     //free(nextTime);
     //free(elapsedTime);
     //free(crashSleepSeconds);
-    if (sleepTime + *((int32_t*) driftSeconds) < MIN_SLEEP) {
+    if (sleepTime + rtcData.driftSeconds < MIN_SLEEP) {
       #if DEBUG == 1
         Serial.print("Sleeping for the minimum of");
         Serial.print(MIN_SLEEP);
         Serial.println(" seconds");
         Serial.print("Drift seconds: ");
-        Serial.println(*((int32_t*) driftSeconds));
+        Serial.println(rtcData.driftSeconds);
       #endif
       ESP.deepSleep(MIN_SLEEP * 1000000);
     }
@@ -262,9 +202,9 @@ void sleep() {
       Serial.print(sleepTime);
       Serial.println(" seconds");
       Serial.print("Drift seconds added to the above figure: ");
-      Serial.println(*((int32_t*) driftSeconds));
+      Serial.println(rtcData.driftSeconds);
     #endif
-    ESP.deepSleep((sleepTime + *((int32_t*) driftSeconds)) * 1000000);
+    ESP.deepSleep((sleepTime + rtcData.driftSeconds) * 1000000);
     ///free(driftSeconds);
 }
 
@@ -307,16 +247,16 @@ void dumpToScreen(String reason) {
   display.println(url);
   
   display.print("Last successful attempt at:");
-  display.println(*((uint32_t*) currentTime));
+  display.println(rtcData.currentTime);
 
   display.print("Original planned wakeup time:");
-  display.println(*((uint32_t*) nextTime));
+  display.println(rtcData.nextTime);
 
   display.print("Last unsuccessful attempt at:");
-  display.println(*((uint32_t*) currentTime) + *((uint32_t*) elapsedTime));
+  display.println(rtcData.currentTime + rtcData.elapsedTime);
   
   display.print("Next attempt in:");
-  display.print(*((uint32_t*) crashSleepSeconds) * 4);
+  display.print(rtcData.crashSleepSeconds * 4);
   display.println(" seconds");
   
   display.update();
@@ -358,12 +298,6 @@ void setup() {
       Serial.println(WiFi.subnetMask());
     #endif
 
-    currentTime = (uint8_t*) malloc(4);
-    nextTime = (uint8_t*) malloc(4);
-    elapsedTime = (uint8_t*) malloc(4);
-    driftSeconds = (uint8_t*) malloc(4);
-    crashSleepSeconds = (uint8_t*) malloc(4);
-
     // Read struct from RTC memory
     if (ESP.rtcUserMemoryRead(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
       #if DEBUG == 1
@@ -371,26 +305,6 @@ void setup() {
         //printMemory();
         //Serial.println();
       #endif
-      currentTime[0] = rtcData.data[0];
-      currentTime[1] = rtcData.data[1];
-      currentTime[2] = rtcData.data[2];
-      currentTime[3] = rtcData.data[3];
-      nextTime[0] = rtcData.data[4];
-      nextTime[1] = rtcData.data[5];
-      nextTime[2] = rtcData.data[6];
-      nextTime[3] = rtcData.data[7];
-      elapsedTime[0] = rtcData.data[8];
-      elapsedTime[1] = rtcData.data[9];
-      elapsedTime[2] = rtcData.data[10];
-      elapsedTime[3] = rtcData.data[11];
-      driftSeconds[0] = rtcData.data[12];
-      driftSeconds[1] = rtcData.data[13];
-      driftSeconds[2] = rtcData.data[14];
-      driftSeconds[3] = rtcData.data[15];
-      crashSleepSeconds[0] = rtcData.data[16];
-      crashSleepSeconds[1] = rtcData.data[17];
-      crashSleepSeconds[2] = rtcData.data[18];
-      crashSleepSeconds[3] = rtcData.data[19];
       uint32_t crcOfData = calculateCRC32(((uint8_t*) &rtcData) + 4, sizeof(rtcData) - 4);
       #if DEBUG == 1
         Serial.print("CRC32 of data: ");
@@ -402,11 +316,11 @@ void setup() {
         #if DEBUG == 1
           Serial.println("CRC32 in RTC memory doesn't match CRC32 of data. Data is probably invalid!");
         #endif
-          *((uint32_t*) currentTime) = 0;
-          *((uint32_t*) nextTime) = 0;
-          *((uint32_t*) elapsedTime) = 0;
-          *((int32_t*) driftSeconds) = 30;
-          *((uint32_t*) crashSleepSeconds) = 15;
+          rtcData.currentTime = 0;
+          rtcData.nextTime = 0;
+          rtcData.elapsedTime = 0;
+          rtcData.driftSeconds = 30;
+          rtcData.crashSleepSeconds = 15;
           dumpToScreen("First boot");
       }
       else {
@@ -417,7 +331,7 @@ void setup() {
     }
     
     //if we aren't there yet, sleep
-    if (*((uint32_t*) elapsedTime) + *((uint32_t*) currentTime) < *((uint32_t*) nextTime)) {
+    if (rtcData.elapsedTime + rtcData.currentTime < rtcData.nextTime) {
       sleep();
     }
 
@@ -479,30 +393,24 @@ void loop() {
                         // read up to 128 byte
                         int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
                         for (int offset = 0; offset < c; offset++) {
-                          if (!initialized) {
+                          if (!initialized) {           //Grab the stuff off the front of the file
                             initialized = true;
-                            uint32_t predictedTime = *((uint32_t*) currentTime) + *((uint32_t*) elapsedTime);
-                            currentTime[0] = buff[0];
-                            currentTime[1] = buff[1];
-                            currentTime[2] = buff[2];
-                            currentTime[3] = buff[3];
-                            nextTime[0] = buff[4];
-                            nextTime[1] = buff[5];
-                            nextTime[2] = buff[6];
-                            nextTime[3] = buff[7];
+                            uint32_t predictedTime = rtcData.currentTime + rtcData.elapsedTime;
+                            rtcData.currentTime = *(uint32_t*) buff;
+                            rtcData.nextTime = *(uint32_t*) (buff + 4);
                             #if DEBUG == 1
                               Serial.print("Updated currentTime: ");
-                              Serial.println(*((uint32_t*) currentTime));
+                              Serial.println(rtcData.currentTime);
                               Serial.print("Updated nextTime: ");
-                              Serial.println(*((uint32_t*) nextTime));
+                              Serial.println(rtcData.nextTime);
                             #endif
-                            *((uint32_t*) crashSleepSeconds) = 15;
-                            if (*((uint32_t*) currentTime) > predictedTime && *((uint32_t*) elapsedTime) > 100) {
-                              *((int32_t*) driftSeconds) -= 1;
-                            } else if (*((uint32_t*) currentTime) < predictedTime && *((uint32_t*) elapsedTime) > 100) {
-                              *((int32_t*) driftSeconds) += 1;
+                            rtcData.crashSleepSeconds = 15;
+                            if (rtcData.currentTime > predictedTime && rtcData.elapsedTime > 100) {
+                              rtcData.driftSeconds -= 1;
+                            } else if (rtcData.currentTime < predictedTime && rtcData.elapsedTime > 100) {
+                              rtcData.driftSeconds += 1;
                             }
-                            *((uint32_t*) elapsedTime) = 0;
+                            rtcData.elapsedTime = 0;
                             lastEntry = buff[8];
                             lastEntry = lastEntry % 2;
                             offset += 9;
@@ -583,19 +491,4 @@ uint32_t calculateCRC32(const uint8_t *data, size_t length)
     }
   }
   return crc;
-}
-
-void printMemory() {
-  char buf[3];
-  for (int i = 0; i < sizeof(rtcData); i++) {
-    sprintf(buf, "%02X", rtcData.data[i]);
-    Serial.print(buf);
-    if ((i + 1) % 32 == 0) {
-      Serial.println();
-    }
-    else {
-      Serial.print(" ");
-    }
-  }
-  Serial.println();
 }
