@@ -208,6 +208,7 @@ void sleep() {
       Serial.print("Drift seconds added to the above figure: ");
       Serial.println(rtcData.driftSeconds);
     #endif
+    
     ESP.deepSleep((sleepTime + rtcData.driftSeconds) * 1000000);
     ///free(driftSeconds);
 }
@@ -276,32 +277,11 @@ void setup() {
           Serial.flush();
           delay(100);
       }
-  
-      Serial.println();
-      Serial.println();
-      Serial.println("Establishing WiFi connection");
-    #endif
-    /*
-    uint8_t bssid[6] = {0x00,0x0f,0x7d,0xdd,0x40,0x31};
-    WiFi.persistent(false);
-    IPAddress staticIP(10,10,104,227);
-    IPAddress gateway(10,10,104,1);
-    IPAddress subnet(255,255,248,0);
-    WiFi.begin("BYUSecure", "byuwireless", 11, bssid);
-    WiFi.config(staticIP, gateway, subnet);
-    WiFi.waitForConnectResult();
-    */
-    
-    #if DEBUG == 1
-      Serial.println("Connected");
-      Serial.print("IP address:");
-      Serial.println(WiFi.localIP());
-      Serial.print("Gateway IP:");
-      Serial.println(WiFi.gatewayIP());
-      Serial.print("Subnet mask: ");
-      Serial.println(WiFi.subnetMask());
     #endif
 
+    //Don't write wifi info to flash
+    WiFi.persistent(false);
+    
     // Read struct from RTC memory
     if (ESP.rtcUserMemoryRead(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
       #if DEBUG == 1
