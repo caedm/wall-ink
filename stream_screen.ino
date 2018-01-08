@@ -4,6 +4,7 @@
 #define DEBUG 1
 #define MAX_SLEEP 1950
 #define MIN_SLEEP 10
+#define ONE_DAY 86400
 
 #if DEVICE_TYPE == 0
   #define X_RES 384
@@ -61,6 +62,9 @@ struct {
   uint32_t elapsedTime;
   int32_t driftSeconds;
   uint32_t crashSleepSeconds;
+  uint8_t channel;  // 1 byte,   5 in total
+  uint8_t bssid[6]; // 6 bytes, 11 in total
+  uint8_t padding;  // 1 byte,  12 in total
 } rtcData;
 
 String url = "";
@@ -138,8 +142,8 @@ void crash(String reason) {
   #endif
   
   rtcData.crashSleepSeconds *= 4;
-  if (rtcData.crashSleepSeconds > 86400) {
-    rtcData.crashSleepSeconds = 86400;
+  if (rtcData.crashSleepSeconds > ONE_DAY) {
+    rtcData.crashSleepSeconds = ONE_DAY;
   }
   rtcData.elapsedTime += rtcData.crashSleepSeconds;
   
@@ -287,7 +291,7 @@ void setup() {
     WiFi.config(staticIP, gateway, subnet);
     WiFi.waitForConnectResult();
     */
-    WiFi.begin("BYUSecure", "byuwireless");
+    
     #if DEBUG == 1
       Serial.println("Connected");
       Serial.print("IP address:");
@@ -316,6 +320,7 @@ void setup() {
         #if DEBUG == 1
           Serial.println("CRC32 in RTC memory doesn't match CRC32 of data. Data is probably invalid!");
         #endif
+          WiFi.begin("BYUSecure", "byuwireless");
           rtcData.currentTime = 0;
           rtcData.nextTime = 0;
           rtcData.elapsedTime = 0;
@@ -327,6 +332,7 @@ void setup() {
         #if DEBUG == 1
           Serial.println("CRC32 check ok, data is probably valid.");
         #endif
+        WiFi.begin("BYUSecure", "byuwireless", rtcData.channel, rtcData.bssid);
       }
     }
     
@@ -341,7 +347,11 @@ void loop() {
     // wait for WiFi connection
     if((WiFi.status() == WL_CONNECTED)) {
 
-        HTTPClient http;
+      //Save wifi connection info
+      rtcData.channel = WiFi.channel();
+      memcpy(rtcData.bssid, WiFi.BSSID(), 6);
+      
+      HTTPClient http;
 
       #if DEBUG == 1
         Serial.print("[HTTP] begin...\n");
@@ -468,7 +478,15 @@ void loop() {
         http.end();
     }
     attempts++;
-    if (attempts > 100) {
+    if (attempts > 75) {
+      WiFi.disconnect();
+      delay(10);
+      WiFi.forceSleepBegin();
+      delay(10);
+      WiFi.forceSleepWake();
+      delay(10);
+      WiFi.begin("BYUSecure", "byuwireless");
+    } else if (attempts > 200) {
       crash("Error connecting to WiFi");
     }
     delay(100);
