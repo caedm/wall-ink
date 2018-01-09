@@ -441,6 +441,10 @@ void loop() {
                     }
                     delay(1);
                 }
+                WiFi.disconnect();
+                delay(10);
+                WiFi.forceSleepBegin();
+                delay(10);
                 display.update();
                 sleep();
             #if DEBUG == 1
