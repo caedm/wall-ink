@@ -338,7 +338,7 @@ void setup() {
           Serial.print("seed: ");
           Serial.println(ESP.getCycleCount());
         #endif
-        randomSeed(analogRead(0));
+        randomSeed(ESP.getCycleCount());
         if (random(20) == 1) {
           WiFiMulti.addAP(WIFI_SSID0, WIFI_PASSWORD0);
           WiFiMulti.addAP(WIFI_SSID1, WIFI_PASSWORD1);
