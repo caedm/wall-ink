@@ -330,14 +330,6 @@ void setup() {
           dumpToScreen("First boot");
       }
       else {
-        #if DEBUG == 1
-          Serial.println("CRC32 check ok, data is probably valid.");
-          Serial.println("Reading analog 0");
-          Serial.print("Time in milliseconds: ");
-          Serial.println(ESP.getCycleCount() / 80000);
-          Serial.print("seed: ");
-          Serial.println(ESP.getCycleCount());
-        #endif
         randomSeed(ESP.getCycleCount());
         if (random(20) == 1) {
           WiFiMulti.addAP(WIFI_SSID0, WIFI_PASSWORD0);
