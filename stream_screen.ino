@@ -2,11 +2,14 @@
 
 #include <GxEPD.h>
 
-#define DEVICE_TYPE 2
-#define DEBUG 1
+#define DEVICE_TYPE 1
+#define DEBUG 0
 #define MAX_SLEEP 1950
 #define MIN_SLEEP 10
 #define ONE_DAY 86400
+#define ONE_HOUR 3600
+#define INITIAL_CRASH_SLEEP_SECONDS 15
+#define INITIAL_DRIFT_SECONDS 30
 #define WIFI_SSID0 "BYU-WiFi"
 #define WIFI_PASSWORD0 ""
 #define WIFI_SSID1 "BYUSecure"
@@ -73,6 +76,7 @@ struct {
   uint8_t padding;  // 1 byte,  12 in total
   char ssid[20];
   char password[20];
+  uint32_t infoHash;
 } rtcData;
 
 String url = "";
@@ -110,6 +114,10 @@ void crash(String reason) {
     dumpToScreen(reason);
   }
 
+  #if DEBUG != 0
+    dumpToScreen(reason);
+  #endif
+
   #if DEBUG == 1
     Serial.println();
     Serial.println("Unable to retrieve image from server");
@@ -129,8 +137,7 @@ void crash(String reason) {
     Serial.println(WiFi.gatewayIP());
     
     Serial.print("RSSI:");
-    Serial.print(WiFi.RSSI());
-    Serial.println("dbm");
+    Serial.println(WiFi.RSSI());
   
     Serial.print("MAC Address:");
     Serial.println(WiFi.macAddress());
@@ -255,8 +262,7 @@ void dumpToScreen(String reason) {
   display.println(WiFi.gatewayIP());
   
   display.print("RSSI:");
-  display.print(WiFi.RSSI());
-  display.println("dbm");
+  display.println(WiFi.RSSI());
 
   display.print("MAC Address:");
   display.println(WiFi.macAddress());
@@ -325,13 +331,14 @@ void setup() {
           rtcData.currentTime = 0;
           rtcData.nextTime = 0;
           rtcData.elapsedTime = 0;
-          rtcData.driftSeconds = 30;
-          rtcData.crashSleepSeconds = 15;
+          rtcData.infoHash = 0;
+          rtcData.driftSeconds = INITIAL_DRIFT_SECONDS;
+          rtcData.crashSleepSeconds = INITIAL_CRASH_SLEEP_SECONDS;
           dumpToScreen("First boot");
       }
       else {
         randomSeed(ESP.getCycleCount());
-        if (random(20) == 1) {
+        if (random(20) == 1 || rtcData.crashSleepSeconds != INITIAL_CRASH_SLEEP_SECONDS) {
           WiFiMulti.addAP(WIFI_SSID0, WIFI_PASSWORD0);
           WiFiMulti.addAP(WIFI_SSID1, WIFI_PASSWORD1);
           WiFiMulti.run();
@@ -375,6 +382,10 @@ void loop() {
         Serial.print("Time in milliseconds: ");
         Serial.println(ESP.getCycleCount() / 80000);
       #endif
+
+      if (WiFi.RSSI() < -85) {
+        crash("Connection Weak");
+      }
 
       //Save wifi connection info
       strcpy(rtcData.ssid, WiFi.SSID().c_str());
