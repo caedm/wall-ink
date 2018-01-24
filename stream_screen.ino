@@ -2,8 +2,8 @@
 
 #include <GxEPD.h>
 
-#define DEVICE_TYPE 1
-#define DEBUG 0
+#define DEVICE_TYPE 2
+#define DEBUG 1
 #define MAX_SLEEP 1950
 #define MIN_SLEEP 10
 #define ONE_DAY 86400
@@ -76,7 +76,7 @@ struct {
   uint8_t padding;  // 1 byte,  12 in total
   char ssid[20];
   char password[20];
-  uint32_t infoHash;
+  uint32_t imageHash;
 } rtcData;
 
 String url = "";
@@ -119,9 +119,6 @@ void crash(String reason) {
   #endif
 
   #if DEBUG == 1
-    Serial.println();
-    Serial.println("Unable to retrieve image from server");
-    
     Serial.println(reason);
     
     Serial.print("SSID:");
@@ -241,11 +238,7 @@ void dumpToScreen(String reason) {
   display.setTextColor(GxEPD_BLACK);
   display.setFont(&FreeMonoBold9pt7b);
   display.setCursor(0, 0);
-  
-  display.setFont(&FreeMonoBold9pt7b);
   display.println();
-  display.println("Unable to retrieve image from server");
-  display.setFont(&FreeMonoBold9pt7b);
   
   display.println(reason);
   
@@ -331,7 +324,7 @@ void setup() {
           rtcData.currentTime = 0;
           rtcData.nextTime = 0;
           rtcData.elapsedTime = 0;
-          rtcData.infoHash = 0;
+          rtcData.imageHash = 0;
           rtcData.driftSeconds = INITIAL_DRIFT_SECONDS;
           rtcData.crashSleepSeconds = INITIAL_CRASH_SLEEP_SECONDS;
           dumpToScreen("First boot");
@@ -383,7 +376,7 @@ void loop() {
         Serial.println(ESP.getCycleCount() / 80000);
       #endif
 
-      if (WiFi.RSSI() < -85) {
+      if (WiFi.RSSI() < -82) {
         crash("Connection Weak");
       }
 
@@ -434,6 +427,11 @@ void loop() {
               // get length of document (is -1 when Server sends no Content-Length header)
               int len = http.getSize();
 
+              //this will happen if the mac address isn't found in the database
+              if (len == 0) {
+                crash("Device not in database");
+              }
+
               // create buffer for read
               uint8_t buff[128] = { 0 };
 
@@ -454,22 +452,30 @@ void loop() {
                           uint32_t predictedTime = rtcData.currentTime + rtcData.elapsedTime;
                           rtcData.currentTime = *(uint32_t*) buff;
                           rtcData.nextTime = *(uint32_t*) (buff + 4);
-                          #if DEBUG == 1
-                            Serial.print("Updated currentTime: ");
-                            Serial.println(rtcData.currentTime);
-                            Serial.print("Updated nextTime: ");
-                            Serial.println(rtcData.nextTime);
-                          #endif
-                          rtcData.crashSleepSeconds = 15;
                           if (rtcData.currentTime > predictedTime && rtcData.elapsedTime > 100) {
                             rtcData.driftSeconds -= 1;
                           } else if (rtcData.currentTime < predictedTime && rtcData.elapsedTime > 100) {
                             rtcData.driftSeconds += 1;
                           }
                           rtcData.elapsedTime = 0;
-                          lastEntry = buff[8];
+                          #if DEBUG == 1
+                            Serial.print("Updated currentTime: ");
+                            Serial.println(rtcData.currentTime);
+                            Serial.print("Updated nextTime: ");
+                            Serial.println(rtcData.nextTime);
+                            Serial.print("Old imageHash: ");
+                            Serial.println(rtcData.imageHash);
+                            Serial.print("New imageHash: ");
+                            Serial.println(*(uint32_t*) (buff + 8));
+                          #endif
+                          if (rtcData.imageHash == *(uint32_t*) (buff + 8) && rtcData.crashSleepSeconds == 15) {
+                            sleep();
+                          }
+                          rtcData.imageHash = *(uint32_t*) (buff + 8);
+                          rtcData.crashSleepSeconds = 15;
+                          lastEntry = buff[12];
                           lastEntry = lastEntry % 2;
-                          offset += 9;
+                          offset += 13;
                         }
                         counter = buff[offset];
                         if (counter == 255) {
@@ -536,15 +542,17 @@ void loop() {
       }
 
       http.end();
+    } else if (WiFi.status() == WL_CONNECT_FAILED) {
+      crash("WiFi connection failed");
+    } else if (WiFi.status() == WL_NO_SSID_AVAIL) {
+      crash("SSID not available");
+    } else if (WiFi.status() == WL_CONNECTION_LOST) {
+      crash("WiFi connection lost");
     }
     attempts++;
-    if (attempts > 75) {
+    if (attempts == 75) {
       WiFi.disconnect();
-      delay(10);
-      WiFi.forceSleepBegin();
-      delay(10);
-      WiFi.forceSleepWake();
-      delay(10);
+      delay(1);
       WiFiMulti.addAP(WIFI_SSID0, WIFI_PASSWORD0);
       WiFiMulti.addAP(WIFI_SSID1, WIFI_PASSWORD1);
       WiFiMulti.run();
@@ -552,6 +560,9 @@ void loop() {
       crash("Error connecting to WiFi");
     }
     delay(100);
+    #if DEBUG == 1
+      Serial.print(".");
+    #endif
 }
 
 uint32_t calculateCRC32(const uint8_t *data, size_t length)
