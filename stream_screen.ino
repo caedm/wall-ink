@@ -417,8 +417,6 @@ void loop() {
                 Serial.print("Time in milliseconds: ");
                 Serial.println(ESP.getCycleCount() / 80000);
               #endif
-              display.init();
-              display.setRotation(ROTATION);
               int cursor = 0;
               uint8_t prevColor = 0;
               uint8_t lastEntry;
@@ -478,6 +476,16 @@ void loop() {
                           if (rtcData.imageHash == *(uint32_t*) (buff + 8) && rtcData.crashSleepSeconds == 15) {
                             sleep();
                           }
+                          #if DEBUG == 1
+                            Serial.print("Initializing display; time in milliseconds: ");
+                            Serial.println(ESP.getCycleCount() / 80000);
+                          #endif
+                          display.init();
+                          display.setRotation(ROTATION);
+                          #if DEBUG == 1
+                            Serial.print("Display initialized; time in milliseconds: ");
+                            Serial.println(ESP.getCycleCount() / 80000);
+                          #endif
                           rtcData.imageHash = *(uint32_t*) (buff + 8);
                           rtcData.crashSleepSeconds = 15;
                           lastEntry = buff[12];
@@ -486,23 +494,27 @@ void loop() {
                         }
                         counter = buff[offset];
                         if (counter == 255) {
-                          for (int16_t i = cursor; i < cursor + 255; i++) {
-                            #if DEBUG == 1
-                                //Serial.print(lastEntry);
-                                //if (i % X_RES == 0)
-                                  //Serial.println("");
-                            #endif
-                            display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
+                          if (!lastEntry) {
+                            for (int16_t i = cursor; i < cursor + 255; i++) {
+                              #if DEBUG == 1
+                                  //Serial.print(lastEntry);
+                                  //if (i % X_RES == 0)
+                                    //Serial.println("");
+                              #endif
+                              display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
+                            }
                           }
                           cursor += 255;
                         } else {
-                          for (int16_t i = cursor; i < cursor + counter; i++) {
-                            #if DEBUG == 1
-                                //Serial.print(lastEntry);
-                                //if (i % X_RES == 0)
-                                  //Serial.println("");
-                            #endif
-                            display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
+                          if (!lastEntry) {
+                            for (int16_t i = cursor; i < cursor + counter; i++) {
+                              #if DEBUG == 1
+                                  //Serial.print(lastEntry);
+                                  //if (i % X_RES == 0)
+                                    //Serial.println("");
+                              #endif
+                              display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
+                            }
                           }
                           lastEntry ^= 0x01;
                           cursor += counter;
