@@ -278,6 +278,7 @@ void dumpToScreen(String reason) {
   display.println(" seconds");
   
   display.update();
+  rtcData.imageHash = -1;
 }
 
 void setup() {
@@ -331,7 +332,7 @@ void setup() {
       }
       else {
         randomSeed(ESP.getCycleCount());
-        if (random(20) == 1 || rtcData.crashSleepSeconds != INITIAL_CRASH_SLEEP_SECONDS) {
+        if (random(30) == 1 || rtcData.crashSleepSeconds != INITIAL_CRASH_SLEEP_SECONDS) {
           WiFiMulti.addAP(WIFI_SSID0, WIFI_PASSWORD0);
           WiFiMulti.addAP(WIFI_SSID1, WIFI_PASSWORD1);
           WiFiMulti.run();
@@ -426,10 +427,14 @@ void loop() {
               boolean initialized = false;
               // get length of document (is -1 when Server sends no Content-Length header)
               int len = http.getSize();
+              #if DEBUG == 1
+                Serial.print("File Size: ");
+                Serial.println(len);
+              #endif
 
               //this will happen if the mac address isn't found in the database
-              if (len == 0) {
-                crash("Device not in database");
+              if (len < 50) {
+                crash("File too small");
               }
 
               // create buffer for read
@@ -451,12 +456,14 @@ void loop() {
                           initialized = true;
                           uint32_t predictedTime = rtcData.currentTime + rtcData.elapsedTime;
                           rtcData.currentTime = *(uint32_t*) buff;
-                          rtcData.nextTime = *(uint32_t*) (buff + 4);
-                          if (rtcData.currentTime > predictedTime && rtcData.elapsedTime > 100) {
+                          if (rtcData.nextTime == *(uint32_t*) (buff + 4)) {
+                            
+                          } else if (rtcData.currentTime > predictedTime && rtcData.elapsedTime > 100) {
                             rtcData.driftSeconds -= 1;
                           } else if (rtcData.currentTime < predictedTime && rtcData.elapsedTime > 100) {
                             rtcData.driftSeconds += 1;
                           }
+                          rtcData.nextTime = *(uint32_t*) (buff + 4);
                           rtcData.elapsedTime = 0;
                           #if DEBUG == 1
                             Serial.print("Updated currentTime: ");
