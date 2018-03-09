@@ -3,7 +3,7 @@
 #include <GxEPD.h>
 
 #define DEVICE_TYPE 2
-#define DEBUG 1
+#define DEBUG 0
 #define MAX_SLEEP 1950
 #define MIN_SLEEP 10
 #define ONE_DAY 86400
@@ -283,15 +283,15 @@ void dumpToScreen(String reason) {
 
 void setup() {
     #if DEBUG == 1
-      Serial.begin(921600);
+      Serial.begin(115200);
       Serial.print("Time in milliseconds: ");
       Serial.println(ESP.getCycleCount() / 80000);
       // Serial.setDebugOutput(true);
 
       for(uint8_t t = 4; t > 0; t--) {
-          //Serial.printf("[SETUP] WAIT %d...\n", t);
-          //Serial.flush();
-          //delay(100);
+          Serial.printf("[SETUP] WAIT %d...\n", t);
+          Serial.flush();
+          delay(100);
       }
     #endif
 
@@ -313,15 +313,18 @@ void setup() {
         Serial.println(rtcData.crc32, HEX);
       #endif
       if (crcOfData != rtcData.crc32) {
-        #if DEBUG == 1
-          Serial.println("CRC32 in RTC memory doesn't match CRC32 of data. Data is probably invalid!");
-          Serial.println("Connecting to wifi");
-          Serial.print("Time in milliseconds: ");
-          Serial.println(ESP.getCycleCount() / 80000);
-        #endif
+          #if DEBUG == 1
+            Serial.println("CRC32 in RTC memory doesn't match CRC32 of data. Data is probably invalid!");
+            Serial.println("Connecting to wifi with default settings");
+            Serial.print("Time in milliseconds: ");
+            Serial.println(ESP.getCycleCount() / 80000);
+          #endif
           WiFiMulti.addAP(WIFI_SSID0, WIFI_PASSWORD0);
           WiFiMulti.addAP(WIFI_SSID1, WIFI_PASSWORD1);
-          WiFiMulti.run();
+          while(WiFiMulti.run() != WL_CONNECTED) {
+            Serial.print(".");
+            delay(500);
+          }
           rtcData.currentTime = 0;
           rtcData.nextTime = 0;
           rtcData.elapsedTime = 0;
@@ -331,33 +334,42 @@ void setup() {
           dumpToScreen("First boot");
       }
       else {
+        //if we aren't there yet, sleep
+        if (rtcData.elapsedTime + rtcData.currentTime < rtcData.nextTime) {
+          sleep();
+        }
         randomSeed(ESP.getCycleCount());
         if (random(30) == 1 || rtcData.crashSleepSeconds != INITIAL_CRASH_SLEEP_SECONDS) {
           WiFiMulti.addAP(WIFI_SSID0, WIFI_PASSWORD0);
           WiFiMulti.addAP(WIFI_SSID1, WIFI_PASSWORD1);
-          WiFiMulti.run();
+          #if DEBUG == 1
+            Serial.println("Connecting to wifi with default settings");
+            Serial.print("Time in milliseconds: ");
+            Serial.println(ESP.getCycleCount() / 80000);
+          #endif
+          while(WiFiMulti.run() != WL_CONNECTED) {
+            Serial.print(".");
+            delay(500);
+          }
         } else {
           WiFi.begin(rtcData.ssid, rtcData.password, rtcData.channel, rtcData.bssid);
+          #if DEBUG == 1
+            Serial.println("Connecting to wifi with stored settings");
+            Serial.print("Time in milliseconds: ");
+            Serial.println(ESP.getCycleCount() / 80000);
+          #endif
         }
-        #if DEBUG == 1
-          Serial.println("Connecting to wifi");
-          Serial.print("Time in milliseconds: ");
-          Serial.println(ESP.getCycleCount() / 80000);
-        #endif
       }
     }
 
     /*
+     * If we can find a way to get the DHCP lease time, we can safely save substantial time by using code similar to this:
     IPAddress ip(10, 10, 104, 34);
     IPAddress gateway(10, 10, 104, 1);
     IPAddress subnet( 255, 255, 248, 0);
     WiFi.config(ip, gateway, subnet);
     */
     
-    //if we aren't there yet, sleep
-    if (rtcData.elapsedTime + rtcData.currentTime < rtcData.nextTime) {
-      sleep();
-    }
 
 }
 
@@ -474,6 +486,10 @@ void loop() {
                             Serial.println(*(uint32_t*) (buff + 8));
                           #endif
                           if (rtcData.imageHash == *(uint32_t*) (buff + 8) && rtcData.crashSleepSeconds == 15) {
+                            WiFi.disconnect();
+                            delay(10);
+                            WiFi.forceSleepBegin();
+                            delay(10);
                             sleep();
                           }
                           #if DEBUG == 1
@@ -569,16 +585,16 @@ void loop() {
       crash("WiFi connection lost");
     }
     attempts++;
-    if (attempts == 75) {
-      WiFi.disconnect();
+    if (attempts == 15) {
+      //WiFi.disconnect();
       delay(1);
-      WiFiMulti.addAP(WIFI_SSID0, WIFI_PASSWORD0);
-      WiFiMulti.addAP(WIFI_SSID1, WIFI_PASSWORD1);
-      WiFiMulti.run();
-    } else if (attempts > 200) {
+      //WiFiMulti.addAP(WIFI_SSID0, WIFI_PASSWORD0);
+      //WiFiMulti.addAP(WIFI_SSID1, WIFI_PASSWORD1);
+      //WiFiMulti.run();
+    } else if (attempts > 40) {
       crash("Error connecting to WiFi");
     }
-    delay(100);
+    delay(500);
     #if DEBUG == 1
       Serial.print(".");
     #endif
