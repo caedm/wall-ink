@@ -83,7 +83,11 @@ String url = "";
 
 void setURL() {
   url = "";
-  url += "http://door-display.groups.et.byu.net/get_image.php?mac_address=";
+  #if DEBUG == 1
+    url += "http://door-display.groups.et.byu.net/test/get_image.php?mac_address=";
+  #else
+    url += "http://door-display.groups.et.byu.net/get_image.php?mac_address=";
+  #endif
   //url += "http://10.2.124.205/~johnathan/get_image.php?mac_address=";
   //url += "https://caedm.et.byu.edu/doordisplay/get_image.php?mac_address=";
   String mac = WiFi.macAddress();
