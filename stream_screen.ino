@@ -3,7 +3,7 @@
 #include <GxEPD.h>
 
 #define DEVICE_TYPE 2
-#define DEBUG 0
+#define DEBUG 1
 #define MAX_SLEEP 1950
 #define MIN_SLEEP 10
 #define ONE_DAY 86400
@@ -393,7 +393,7 @@ void loop() {
         Serial.println(ESP.getCycleCount() / 80000);
       #endif
 
-      if (WiFi.RSSI() < -82) {
+      if (WiFi.RSSI() < -88) {
         crash("Connection Weak");
       }
 
