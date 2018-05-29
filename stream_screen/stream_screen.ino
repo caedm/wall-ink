@@ -1,7 +1,11 @@
 //Sketch uses esp8266 board version 2.3.0
+//Sketch uses the GxEPD library from https://github.com/ZinggJM/GxEPD
+//The GxEPD library needs to be modified such that display._buffer is public instead of private. This needs to be done for the driver of each screen type you want to support.
+//You may notice that this program has a few memory leaks. Those were left there on purpose, since the device reboots so often.
 
 #include <GxEPD.h>
-
+#include <Hash.h>
+#define FIRMWARE_VERSION "1.0a"
 #define DEVICE_TYPE 2
 #define DEBUG 1
 #define MAX_SLEEP 1950
@@ -14,6 +18,7 @@
 #define WIFI_PASSWORD0 ""
 #define WIFI_SSID1 "BYUSecure"
 #define WIFI_PASSWORD1 "byuwireless"
+#define IMAGE_KEY "hunter2"
 
 #if DEVICE_TYPE == 0
   #define X_RES 384
@@ -26,11 +31,6 @@
   #define ROTATION 0
   #include <GxGDEW042T2/GxGDEW042T2.cpp>      // 4.2" b/w landscape
 #elif DEVICE_TYPE == 2
-  #define X_RES 640
-  #define Y_RES 384
-  #define ROTATION 0
-  #include <GxGDEW075T8/GxGDEW075T8.cpp>      // 7.5" b/w landscape
-#elif DEVICE_TYPE == 3
   #define X_RES 640
   #define Y_RES 384
   #define ROTATION 0
@@ -63,7 +63,7 @@ uint16_t attempts = 0;
 // First field is CRC32, which is calculated based on the
 // rest of structure contents.
 // Any fields can go after CRC32.
-// We use byte array as an example.
+// Must use a multiple of 4 bytes of RAM.
 struct {
   uint32_t crc32;
   uint32_t currentTime;
@@ -76,7 +76,7 @@ struct {
   uint8_t padding;  // 1 byte,  12 in total
   char ssid[20];
   char password[20];
-  uint32_t imageHash;
+  char imageHash[20];
 } rtcData;
 
 String url = "";
@@ -88,13 +88,13 @@ void setURL() {
   #else
     url += "http://door-display.groups.et.byu.net/get_image.php?mac_address=";
   #endif
-  //url += "http://10.2.124.205/~johnathan/get_image.php?mac_address=";
-  //url += "https://caedm.et.byu.edu/doordisplay/get_image.php?mac_address=";
   String mac = WiFi.macAddress();
   while(mac.indexOf(':') != -1) {
     mac.remove(mac.indexOf(':'), 1);
   }
   url += mac;
+  url += "&firmware=";
+  url += FIRMWARE_VERSION;
   url += "&voltage=";
   #if DEBUG == 1
     Serial.println("Measuring Voltage...");
@@ -110,7 +110,6 @@ void setURL() {
     Serial.print("Time in milliseconds: ");
     Serial.println(ESP.getCycleCount() / 80000);
   #endif
-  //url = "http://door-display.groups.et.byu.net/60019431677B.compressed";
 }
 
 void crash(String reason) {
@@ -207,10 +206,6 @@ void sleep() {
       Serial.println(rtcData.crashSleepSeconds);
     #endif
 
-    //free(currentTime);
-    //free(nextTime);
-    //free(elapsedTime);
-    //free(crashSleepSeconds);
     if (sleepTime + rtcData.driftSeconds < MIN_SLEEP) {
       #if DEBUG == 1
         Serial.print("Sleeping for the minimum of");
@@ -232,7 +227,6 @@ void sleep() {
       Serial.println("");
     #endif
     ESP.deepSleep((sleepTime + rtcData.driftSeconds) * 1000000);
-    ///free(driftSeconds);
 }
 
 void dumpToScreen(String reason) {
@@ -282,7 +276,8 @@ void dumpToScreen(String reason) {
   display.println(" seconds");
   
   display.update();
-  rtcData.imageHash = -1;
+  for (int i = 0; i < 20; i++)
+    rtcData.imageHash[i] = -1;
 }
 
 void setup() {
@@ -332,7 +327,8 @@ void setup() {
           rtcData.currentTime = 0;
           rtcData.nextTime = 0;
           rtcData.elapsedTime = 0;
-          rtcData.imageHash = 0;
+          for (int i = 0; i < 20; i++)
+            rtcData.imageHash[i] = 0;
           rtcData.driftSeconds = INITIAL_DRIFT_SECONDS;
           rtcData.crashSleepSeconds = INITIAL_CRASH_SLEEP_SECONDS;
           dumpToScreen("First boot");
@@ -393,7 +389,7 @@ void loop() {
         Serial.println(ESP.getCycleCount() / 80000);
       #endif
 
-      if (WiFi.RSSI() < -88) {
+      if (WiFi.RSSI() < -90) {
         crash("Connection Weak");
       }
 
@@ -485,11 +481,23 @@ void loop() {
                             Serial.print("Updated nextTime: ");
                             Serial.println(rtcData.nextTime);
                             Serial.print("Old imageHash: ");
-                            Serial.println(rtcData.imageHash);
+                            for (int i = 0; i < 20; i++) {
+                              Serial.print(String(rtcData.imageHash[i], HEX));
+                            }
+                            Serial.println("");
                             Serial.print("New imageHash: ");
-                            Serial.println(*(uint32_t*) (buff + 8));
+                            for (int i = 0; i < 20; i++) {
+                              Serial.print(String(*(uint8_t*) (buff + 8+i), HEX));
+                            }
+                            Serial.println("");
                           #endif
-                          if (rtcData.imageHash == *(uint32_t*) (buff + 8) && rtcData.crashSleepSeconds == 15) {
+                          bool imageMatch = true;
+                          for (int i = 0; i < 20; i++) {
+                            if (rtcData.imageHash[i] != *(char*) (buff+8+i)) {
+                              imageMatch = false;
+                            }
+                          }
+                          if (imageMatch && rtcData.crashSleepSeconds == 15) {
                             WiFi.disconnect();
                             delay(10);
                             WiFi.forceSleepBegin();
@@ -506,33 +514,25 @@ void loop() {
                             Serial.print("Display initialized; time in milliseconds: ");
                             Serial.println(ESP.getCycleCount() / 80000);
                           #endif
-                          rtcData.imageHash = *(uint32_t*) (buff + 8);
+                          memcpy(rtcData.imageHash, buff+8, 20);
                           rtcData.crashSleepSeconds = 15;
-                          lastEntry = buff[12];
+                          lastEntry = buff[28];
                           lastEntry = lastEntry % 2;
-                          offset += 13;
+                          offset += 29;
                         }
                         counter = buff[offset];
                         if (counter == 255) {
-                          if (!lastEntry) {
+                          if (lastEntry) {
                             for (int16_t i = cursor; i < cursor + 255; i++) {
-                              #if DEBUG == 1
-                                  //Serial.print(lastEntry);
-                                  //if (i % X_RES == 0)
-                                    //Serial.println("");
-                              #endif
                               display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
                             }
                           }
                           cursor += 255;
+                        } else if (counter == 0) {
+                          lastEntry ^= 0x01;
                         } else {
-                          if (!lastEntry) {
+                          if (lastEntry) {
                             for (int16_t i = cursor; i < cursor + counter; i++) {
-                              #if DEBUG == 1
-                                  //Serial.print(lastEntry);
-                                  //if (i % X_RES == 0)
-                                    //Serial.println("");
-                              #endif
                               display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
                             }
                           }
@@ -554,6 +554,44 @@ void loop() {
               delay(10);
               WiFi.forceSleepBegin();
               delay(10);
+              #if DEBUG == 1
+                Serial.println("Calculating SHA1 hash");
+                Serial.print("Time in milliseconds: ");
+                Serial.println(ESP.getCycleCount() / 80000);
+              #endif
+              //hash the image, hash the password, then hash the two hashes
+              //the server does the same thing, and the client compares them
+              uint8_t* hash = (uint8_t*) malloc(40);
+              sha1(display._buffer, X_RES*Y_RES/8, hash);
+              char imageKey[] = IMAGE_KEY;
+              sha1(imageKey, sizeof(imageKey), hash+20);
+              uint8_t* finalHash = (uint8_t*) malloc(20);
+              sha1(hash, 40, finalHash);
+              Serial.println("Hash: ");
+              for (int i = 0; i < 20; i++) {
+                Serial.print(String(finalHash[i], HEX));
+              }
+              Serial.println("");
+              Serial.println("");
+              bool imageVerified = true;
+              for (int i = 0; i < 20; i++) {
+                if (rtcData.imageHash[i] != finalHash[i]) {
+                  imageVerified = false;
+                }
+              }
+              if (!imageVerified) {
+                #if DEBUG == 1
+                  Serial.println("Image did not pass verification, sleeping");
+                  Serial.print("Time in milliseconds: ");
+                  Serial.println(ESP.getCycleCount() / 80000);
+                #endif
+                WiFi.disconnect();
+                delay(10);
+                WiFi.forceSleepBegin();
+                delay(10);
+                sleep();
+              }
+              
               #if DEBUG == 1
                 Serial.println("Updating display");
                 Serial.print("Time in milliseconds: ");
