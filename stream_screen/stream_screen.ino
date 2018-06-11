@@ -5,9 +5,9 @@
 
 #include <GxEPD.h>
 #include <Hash.h>
-#define FIRMWARE_VERSION "1.0a"
+#define FIRMWARE_VERSION "1.01a"
 #define DEVICE_TYPE 2
-#define DEBUG 1
+#define DEBUG 0
 #define MAX_SLEEP 1950
 #define MIN_SLEEP 10
 #define ONE_DAY 86400
@@ -33,7 +33,7 @@
 #elif DEVICE_TYPE == 2
   #define X_RES 640
   #define Y_RES 384
-  #define ROTATION 0
+  #define ROTATION 2
   #include <GxGDEW075T8/GxGDEW075T8.cpp>      // 7.5" b/w landscape
 #endif
 
@@ -42,7 +42,7 @@
 
 #include <Fonts/FreeMonoBold9pt7b.h>
 
-GxIO_Class io(SPI, 15, 0, 2);
+GxIO_Class io(SPI, 5, 0, 2);
 GxEPD_Class display(io, 2, 12);
 
 #include <ESP8266WiFi.h>
@@ -95,6 +95,9 @@ void setURL() {
   url += mac;
   url += "&firmware=";
   url += FIRMWARE_VERSION;
+  #if DEBUG == 1
+    url += "_debug";
+  #endif
   url += "&voltage=";
   #if DEBUG == 1
     Serial.println("Measuring Voltage...");
@@ -589,6 +592,7 @@ void loop() {
                 delay(10);
                 WiFi.forceSleepBegin();
                 delay(10);
+                crash("Image failed verification test");
                 sleep();
               }
               
