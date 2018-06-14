@@ -5,7 +5,7 @@
 
 #include <GxEPD.h>
 #include <Hash.h>
-#define FIRMWARE_VERSION "1.01a"
+#define FIRMWARE_VERSION "2.00a"
 #define DEVICE_TYPE 2
 #define DEBUG 0
 #define MAX_SLEEP 1950
@@ -14,11 +14,6 @@
 #define ONE_HOUR 3600
 #define INITIAL_CRASH_SLEEP_SECONDS 15
 #define INITIAL_DRIFT_SECONDS 30
-#define WIFI_SSID0 "BYU-WiFi"
-#define WIFI_PASSWORD0 ""
-#define WIFI_SSID1 "BYUSecure"
-#define WIFI_PASSWORD1 "byuwireless"
-#define IMAGE_KEY "hunter2"
 
 #if DEVICE_TYPE == 0
   #define X_RES 384
@@ -48,10 +43,14 @@ GxEPD_Class display(io, 2, 12);
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <ESP8266HTTPClient.h>
+#include <EEPROM.h>
+#include <ESP8266WebServer.h>
 
 ADC_MODE(ADC_VCC);  //needed to read the supply voltage
 
 ESP8266WiFiMulti WiFiMulti;
+
+ESP8266WebServer server(80);
 
 // CRC function used to ensure data validity
 uint32_t calculateCRC32(const uint8_t *data, size_t length);
@@ -79,15 +78,44 @@ struct {
   char imageHash[20];
 } rtcData;
 
+struct {
+  bool wifiProfile1Active;
+  char baseURL[100];
+  char ssid0[20];
+  char ssid1[20];
+  char password0[20];
+  char password1[20];
+  char imageKey[20];
+  uint8_t hash[20];
+} eeprom;
+
 String url = "";
 
+bool readEeprom() {
+  EEPROM.begin(sizeof(eeprom));
+  EEPROM.get(0, eeprom);
+  EEPROM.end();
+  uint8_t hash[20];
+  sha1((uint8_t*) &eeprom, sizeof(eeprom)-20, hash);
+  bool dataCorrupted = false;
+  for (int i = 0; i < 20; i++) {
+    if (eeprom.hash[i] != hash[i]) {
+      dataCorrupted = true;
+    }
+  }
+  return !dataCorrupted;
+}
+
+void writeEeprom() {
+  sha1((uint8_t*) &eeprom, sizeof(eeprom)-20, eeprom.hash);
+  EEPROM.begin(sizeof(eeprom));
+  EEPROM.put(0, eeprom);
+  EEPROM.end();
+}
+
 void setURL() {
-  url = "";
-  #if DEBUG == 1
-    url += "http://door-display.groups.et.byu.net/test/get_image.php?mac_address=";
-  #else
-    url += "http://door-display.groups.et.byu.net/get_image.php?mac_address=";
-  #endif
+  url = eeprom.baseURL;
+  url += "?mac_address=";
   String mac = WiFi.macAddress();
   while(mac.indexOf(':') != -1) {
     mac.remove(mac.indexOf(':'), 1);
@@ -283,97 +311,180 @@ void dumpToScreen(String reason) {
     rtcData.imageHash[i] = -1;
 }
 
+void handleRoot() {
+  #if DEBUG == 1
+    Serial.println("Received request at /");
+  #endif
+  String webPage = "<!DOCTYPE HTML><html><h1>Web Configuration</h1>";
+  webPage += "</p><form method='get' action='submit'>";
+  webPage += "<label>SSID0: </label><input name='ssid0' length=20><br>";
+  webPage += "<label>Password0: </label><input name='password0' length=20><br>";
+  webPage += "<label>SSID1: </label><input name='ssid1' length=20><br>";
+  webPage += "<label>Password1: </label><input name='password1' length=20><br>";
+  webPage += "<label>Base URL: </label><input name='baseurl' length=100><br>";
+  webPage += "<label>Image Key: </label><input name='imagekey' length=100><br>";
+  webPage += "<input type='submit'></form></html>";
+  server.send(200, "text/html", webPage);
+}
+
+void handleSubmit() {
+  server.send(200, "text/html", "<h1>Settings Saved</h1>");
+  strcpy(eeprom.ssid0, server.arg("ssid0").c_str());
+  strcpy(eeprom.password0, server.arg("password0").c_str());
+  strcpy(eeprom.ssid1, server.arg("ssid1").c_str());
+  strcpy(eeprom.password1, server.arg("password1").c_str());
+  strcpy(eeprom.baseURL, server.arg("baseurl").c_str());
+  strcpy(eeprom.imageKey, server.arg("imagekey").c_str());
+  writeEeprom();
+  #if DEBUG == 1
+    Serial.println("Received request at /submit");
+    Serial.println("SSID0: ");
+    Serial.println(server.arg("ssid0"));
+    Serial.println("Password0: ");
+    Serial.println(server.arg("password0"));
+    Serial.println("SSID1: ");
+    Serial.println(server.arg("ssid1"));
+    Serial.println("password1: ");
+    Serial.println(server.arg("password1"));
+    Serial.println("baseurl: ");
+    Serial.println(server.arg("baseurl"));
+    Serial.println("imagekey: ");
+    Serial.println(server.arg("imagekey"));
+    Serial.println("New values have been written to Eeprom");
+  #endif
+}
+
 void setup() {
+  
+  #if DEBUG == 1
+    Serial.begin(115200);
+    Serial.print("Time in milliseconds: ");
+    Serial.println(ESP.getCycleCount() / 80000);
+    // Serial.setDebugOutput(true);
+
+    for(uint8_t t = 4; t > 0; t--) {
+        Serial.printf("[SETUP] WAIT %d...\n", t);
+        Serial.flush();
+        delay(100);
+    }
+  #endif
+
+  //Don't write wifi info to flash
+  WiFi.persistent(false);
+
+  //todo: replace this pin with whichever pin it is that Dean actually set the switch to use
+  //activate AP mode if set to do so
+  pinMode(4, INPUT);
+  if (digitalRead(4) == HIGH) {
     #if DEBUG == 1
-      Serial.begin(115200);
-      Serial.print("Time in milliseconds: ");
-      Serial.println(ESP.getCycleCount() / 80000);
-      // Serial.setDebugOutput(true);
-
-      for(uint8_t t = 4; t > 0; t--) {
-          Serial.printf("[SETUP] WAIT %d...\n", t);
-          Serial.flush();
-          delay(100);
-      }
+      Serial.println();
+      Serial.print("Configuring access point...\n");
     #endif
+    WiFi.softAP("BYU Door Display");
+  
+    IPAddress myIP = WiFi.softAPIP();
+    Serial.print("AP IP address: ");
+    Serial.println(myIP);
+    server.on("/", handleRoot);
+    server.on("/submit", handleSubmit);
+    server.begin();
+    Serial.println("Webserver started");
+    while (true) {
+      server.handleClient();
+      //yield();
+    }
+  }
 
-    //Don't write wifi info to flash
-    WiFi.persistent(false);
-    
-    // Read struct from RTC memory
-    if (ESP.rtcUserMemoryRead(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
-      #if DEBUG == 1
-        //Serial.println("Read: ");
-        //printMemory();
-        //Serial.println();
-      #endif
-      uint32_t crcOfData = calculateCRC32(((uint8_t*) &rtcData) + 4, sizeof(rtcData) - 4);
-      #if DEBUG == 1
-        Serial.print("CRC32 of data: ");
-        Serial.println(crcOfData, HEX);
-        Serial.print("CRC32 read from RTC: ");
-        Serial.println(rtcData.crc32, HEX);
-      #endif
-      if (crcOfData != rtcData.crc32) {
-          #if DEBUG == 1
-            Serial.println("CRC32 in RTC memory doesn't match CRC32 of data. Data is probably invalid!");
-            Serial.println("Connecting to wifi with default settings");
-            Serial.print("Time in milliseconds: ");
-            Serial.println(ESP.getCycleCount() / 80000);
-          #endif
-          WiFiMulti.addAP(WIFI_SSID0, WIFI_PASSWORD0);
-          WiFiMulti.addAP(WIFI_SSID1, WIFI_PASSWORD1);
-          while(WiFiMulti.run() != WL_CONNECTED) {
-            Serial.print(".");
-            delay(500);
-          }
-          rtcData.currentTime = 0;
-          rtcData.nextTime = 0;
-          rtcData.elapsedTime = 0;
-          for (int i = 0; i < 20; i++)
-            rtcData.imageHash[i] = 0;
-          rtcData.driftSeconds = INITIAL_DRIFT_SECONDS;
-          rtcData.crashSleepSeconds = INITIAL_CRASH_SLEEP_SECONDS;
-          dumpToScreen("First boot");
+  //if EEPROM data is bad, regenerate it
+  if (!readEeprom()) {
+    eeprom.wifiProfile1Active = true;
+    #if DEBUG == 1
+      strcpy(eeprom.baseURL, "http://door-display.groups.et.byu.net/test/get_image.php");
+    #else
+      strcpy(eeprom.baseURL, "http://door-display.groups.et.byu.net/get_image.php");
+    #endif
+    strcpy(eeprom.ssid0, "BYUSecure");
+    strcpy(eeprom.ssid1, "BYU-WiFi");
+    strcpy(eeprom.password0, "byuwireless");
+    strcpy(eeprom.password1, "");
+    strcpy(eeprom.imageKey, "hunter2");
+    writeEeprom();
+  }
+
+  
+  // Read struct from RTC memory
+  if (ESP.rtcUserMemoryRead(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
+    #if DEBUG == 1
+      //Serial.println("Read: ");
+      //printMemory();
+      //Serial.println();
+    #endif
+    uint32_t crcOfData = calculateCRC32(((uint8_t*) &rtcData) + 4, sizeof(rtcData) - 4);
+    #if DEBUG == 1
+      Serial.print("CRC32 of data: ");
+      Serial.println(crcOfData, HEX);
+      Serial.print("CRC32 read from RTC: ");
+      Serial.println(rtcData.crc32, HEX);
+    #endif
+    if (crcOfData != rtcData.crc32) {
+        #if DEBUG == 1
+          Serial.println("CRC32 in RTC memory doesn't match CRC32 of data. Data is probably invalid!");
+          Serial.println("Connecting to wifi with default settings");
+          Serial.print("Time in milliseconds: ");
+          Serial.println(ESP.getCycleCount() / 80000);
+        #endif
+        WiFiMulti.addAP(eeprom.ssid0, eeprom.password0);
+        WiFiMulti.addAP(eeprom.ssid1, eeprom.password1);
+        while(WiFiMulti.run() != WL_CONNECTED) {
+          Serial.print(".");
+          delay(500);
+        }
+        rtcData.currentTime = 0;
+        rtcData.nextTime = 0;
+        rtcData.elapsedTime = 0;
+        for (int i = 0; i < 20; i++)
+          rtcData.imageHash[i] = 0;
+        rtcData.driftSeconds = INITIAL_DRIFT_SECONDS;
+        rtcData.crashSleepSeconds = INITIAL_CRASH_SLEEP_SECONDS;
+        dumpToScreen("First boot");
+    }
+    else {
+      //if we aren't there yet, sleep
+      if (rtcData.elapsedTime + rtcData.currentTime < rtcData.nextTime) {
+        sleep();
       }
-      else {
-        //if we aren't there yet, sleep
-        if (rtcData.elapsedTime + rtcData.currentTime < rtcData.nextTime) {
-          sleep();
+      randomSeed(ESP.getCycleCount());
+      if (random(30) == 1 || rtcData.crashSleepSeconds != INITIAL_CRASH_SLEEP_SECONDS) {
+        WiFiMulti.addAP(eeprom.ssid0, eeprom.password0);
+        WiFiMulti.addAP(eeprom.ssid1, eeprom.password1);
+        #if DEBUG == 1
+          Serial.println("Connecting to wifi with default settings");
+          Serial.print("Time in milliseconds: ");
+          Serial.println(ESP.getCycleCount() / 80000);
+        #endif
+        while(WiFiMulti.run() != WL_CONNECTED) {
+          Serial.print(".");
+          delay(500);
         }
-        randomSeed(ESP.getCycleCount());
-        if (random(30) == 1 || rtcData.crashSleepSeconds != INITIAL_CRASH_SLEEP_SECONDS) {
-          WiFiMulti.addAP(WIFI_SSID0, WIFI_PASSWORD0);
-          WiFiMulti.addAP(WIFI_SSID1, WIFI_PASSWORD1);
-          #if DEBUG == 1
-            Serial.println("Connecting to wifi with default settings");
-            Serial.print("Time in milliseconds: ");
-            Serial.println(ESP.getCycleCount() / 80000);
-          #endif
-          while(WiFiMulti.run() != WL_CONNECTED) {
-            Serial.print(".");
-            delay(500);
-          }
-        } else {
-          WiFi.begin(rtcData.ssid, rtcData.password, rtcData.channel, rtcData.bssid);
-          #if DEBUG == 1
-            Serial.println("Connecting to wifi with stored settings");
-            Serial.print("Time in milliseconds: ");
-            Serial.println(ESP.getCycleCount() / 80000);
-          #endif
-        }
+      } else {
+        WiFi.begin(rtcData.ssid, rtcData.password, rtcData.channel, rtcData.bssid);
+        #if DEBUG == 1
+          Serial.println("Connecting to wifi with stored settings");
+          Serial.print("Time in milliseconds: ");
+          Serial.println(ESP.getCycleCount() / 80000);
+        #endif
       }
     }
+  }
 
-    /*
-     * If we can find a way to get the DHCP lease time, we can safely save substantial time by using code similar to this:
-    IPAddress ip(10, 10, 104, 34);
-    IPAddress gateway(10, 10, 104, 1);
-    IPAddress subnet( 255, 255, 248, 0);
-    WiFi.config(ip, gateway, subnet);
-    */
-    
-
+  /*
+   * If we can find a way to get the DHCP lease time, we can safely save substantial time by using code similar to this:
+  IPAddress ip(10, 10, 104, 34);
+  IPAddress gateway(10, 10, 104, 1);
+  IPAddress subnet( 255, 255, 248, 0);
+  WiFi.config(ip, gateway, subnet);
+  */
+  
 }
 
 void loop() {
@@ -566,8 +677,7 @@ void loop() {
               //the server does the same thing, and the client compares them
               uint8_t* hash = (uint8_t*) malloc(40);
               sha1(display._buffer, X_RES*Y_RES/8, hash);
-              char imageKey[] = IMAGE_KEY;
-              sha1(imageKey, sizeof(imageKey), hash+20);
+              sha1(eeprom.imageKey, strlen(eeprom.imageKey)+1, hash+20);
               uint8_t* finalHash = (uint8_t*) malloc(20);
               sha1(hash, 40, finalHash);
               Serial.println("Hash: ");
