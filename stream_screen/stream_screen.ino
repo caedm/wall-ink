@@ -6,7 +6,8 @@
 #include <GxEPD.h>
 #include <Hash.h>
 #include "debug_mode.h"
-#define FIRMWARE_VERSION "2.02c"
+#include <pgmspace.h>
+#define FIRMWARE_VERSION "2.03a"
 #define DEVICE_TYPE 2
 #define DEBUG 1
 #define MAX_SLEEP 1950
@@ -413,9 +414,6 @@ void setup() {
     }
   }
 
-  //Don't write wifi info to flash
-  WiFi.persistent(false);
-
   //todo: replace this pin with whichever pin it is that Dean actually set the switch to use
   //activate AP mode if set to do so
   pinMode(4, INPUT_PULLUP);
@@ -424,6 +422,8 @@ void setup() {
       Serial.println();
       Serial.print("Configuring access point...\n");
     }
+    IPAddress apIP(192, 168, 4, 1);
+    WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
     String ssid = "BYU DD ";
     ssid += getMAC();
     WiFi.softAP(ssid.c_str());
@@ -437,9 +437,12 @@ void setup() {
     Serial.println("Webserver started");
     while (true) {
       server.handleClient();
-      yield();
+      delay(100);
     }
   }
+  
+  //Don't write wifi info to flash
+  WiFi.persistent(false);
   
   // Read struct from RTC memory
   if (ESP.rtcUserMemoryRead(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
@@ -739,7 +742,7 @@ void loop() {
                 Serial.println("Updating display");
                 Serial.print("Time in milliseconds: ");
                 Serial.println(ESP.getCycleCount() / 80000);
-                display.drawExampleBitmap(debug_image, 0, 369, 640, 14, GxEPD_BLACK);
+                memcpy_P(display._buffer, debug_image, 1120);
               }
               display.update();
               if (eeprom.debug) {
