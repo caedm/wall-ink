@@ -739,6 +739,7 @@ void loop() {
                 Serial.println("Updating display");
                 Serial.print("Time in milliseconds: ");
                 Serial.println(ESP.getCycleCount() / 80000);
+                display.drawExampleBitmap(debug_image, 0, 369, 640, 14, GxEPD_BLACK);
               }
               display.update();
               if (eeprom.debug) {
