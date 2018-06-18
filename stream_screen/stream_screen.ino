@@ -7,7 +7,7 @@
 #include <Hash.h>
 #include "debug_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.03a"
+#define FIRMWARE_VERSION "2.04a"
 #define DEVICE_TYPE 2
 #define DEBUG 1
 #define MAX_SLEEP 1950
@@ -114,6 +114,12 @@ void writeEeprom() {
   EEPROM.begin(sizeof(eeprom));
   EEPROM.put(0, eeprom);
   EEPROM.end();
+  
+  // Write bad crc32 so that a new image is refreshed on reboot
+  rtcData.crc32 = calculateCRC32(((uint8_t*) &rtcData), sizeof(rtcData));
+  // Write struct with bad crc32 to RTC memory
+  if (ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
+  }
 }
 
 String getMAC() {
