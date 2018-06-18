@@ -5,7 +5,8 @@
 
 #include <GxEPD.h>
 #include <Hash.h>
-#define FIRMWARE_VERSION "2.02a"
+#include "debug_mode.h"
+#define FIRMWARE_VERSION "2.02c"
 #define DEVICE_TYPE 2
 #define DEBUG 1
 #define MAX_SLEEP 1950
@@ -325,11 +326,21 @@ void handleRoot() {
   webPage += "</style>";
   webPage += "<h1>Web Configuration</h1>";
   webPage += "</p><form method='get' action='submit'>";
-  webPage += "<label>SSID0: </label><input name='ssid0' length=20><br>";
-  webPage += "<label>Password0: </label><input name='password0' length=20><br>";
-  webPage += "<label>SSID1: </label><input name='ssid1' length=20><br>";
-  webPage += "<label>Password1: </label><input name='password1' length=20><br>";
-  webPage += "<label>Base URL: </label><input name='baseurl' length=100><br>";
+  webPage += "<label>SSID0: </label><input name='ssid0' value=\"";
+  webPage += eeprom.ssid0;
+  webPage += "\" length=20><br>";
+  webPage += "<label>Password0: </label><input name='password0' value=\"";
+  webPage += eeprom.password0;
+  webPage += "\" length=20><br>";
+  webPage += "<label>SSID1: </label><input name='ssid1' value=\"";
+  webPage += eeprom.ssid1;
+  webPage += "\" length=20><br>";
+  webPage += "<label>Password1: </label><input name='password1' value=\"";
+  webPage += eeprom.password1;
+  webPage += "\" length=20><br>";
+  webPage += "<label>Base URL: </label><input name='baseurl' value=\"";
+  webPage += eeprom.baseURL;
+  webPage += "\" length=100><br>";
   webPage += "<label>Image Key: </label><input name='imagekey' length=100><br>";
   webPage += "<fieldset id=\"debug\"><legend>Debug Mode</legend><ul><li>";
   webPage += "<label for=\"on\">On</label>";
@@ -350,7 +361,7 @@ void handleSubmit() {
   strcpy(eeprom.imageKey, server.arg("imagekey").c_str());
   eeprom.debug = server.arg("debug").equals("1");
   writeEeprom();
-  if (eeprom.debug) {
+  if (eeprom.debug == 1) {
     Serial.println("Received request at /submit");
     Serial.println("SSID0: ");
     Serial.println(server.arg("ssid0"));
@@ -371,6 +382,23 @@ void handleSubmit() {
 }
 
 void setup() {
+
+  //if EEPROM data is bad, regenerate it
+  if (!readEeprom()) {
+    eeprom.wifiProfile1Active = true;
+    if (eeprom.debug) {
+      strcpy(eeprom.baseURL, "http://door-display.groups.et.byu.net/test/get_image.php");
+    } else {
+      strcpy(eeprom.baseURL, "http://door-display.groups.et.byu.net/get_image.php");
+    }
+    strcpy(eeprom.ssid0, "BYUSecure");
+    strcpy(eeprom.ssid1, "BYU-WiFi");
+    strcpy(eeprom.password0, "byuwireless");
+    strcpy(eeprom.password1, "");
+    strcpy(eeprom.imageKey, "hunter2");
+    eeprom.debug = false;
+    writeEeprom();
+  }
   
   if (eeprom.debug) {
     Serial.begin(115200);
@@ -412,24 +440,6 @@ void setup() {
       yield();
     }
   }
-
-  //if EEPROM data is bad, regenerate it
-  if (!readEeprom()) {
-    eeprom.wifiProfile1Active = true;
-    if (eeprom.debug) {
-      strcpy(eeprom.baseURL, "http://door-display.groups.et.byu.net/test/get_image.php");
-    } else {
-      strcpy(eeprom.baseURL, "http://door-display.groups.et.byu.net/get_image.php");
-    }
-    strcpy(eeprom.ssid0, "BYUSecure");
-    strcpy(eeprom.ssid1, "BYU-WiFi");
-    strcpy(eeprom.password0, "byuwireless");
-    strcpy(eeprom.password1, "");
-    strcpy(eeprom.imageKey, "hunter2");
-    eeprom.debug = false;
-    writeEeprom();
-  }
-
   
   // Read struct from RTC memory
   if (ESP.rtcUserMemoryRead(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
