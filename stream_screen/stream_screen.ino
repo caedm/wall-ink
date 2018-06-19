@@ -7,7 +7,7 @@
 #include <Hash.h>
 #include "debug_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.04b"
+#define FIRMWARE_VERSION "2.04c"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
