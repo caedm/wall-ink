@@ -7,9 +7,9 @@
 #include <Hash.h>
 #include "debug_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.04a"
+#define FIRMWARE_VERSION "2.04b"
 #define DEVICE_TYPE 2
-#define DEBUG 1
+#define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
 #define MIN_SLEEP 10
 #define ONE_DAY 86400
@@ -420,32 +420,34 @@ void setup() {
     }
   }
 
-  //todo: replace this pin with whichever pin it is that Dean actually set the switch to use
-  //activate AP mode if set to do so
-  pinMode(4, INPUT_PULLUP);
-  if (digitalRead(4) == LOW) {
-    if (eeprom.debug) {
-      Serial.println();
-      Serial.print("Configuring access point...\n");
+  #if ADMIN_MODE_ENABLED == 1
+    //todo: replace this pin with whichever pin it is that Dean actually set the switch to use
+    //activate AP mode if set to do so
+    pinMode(4, INPUT_PULLUP);
+    if (digitalRead(4) == LOW) {
+      if (eeprom.debug) {
+        Serial.println();
+        Serial.print("Configuring access point...\n");
+      }
+      IPAddress apIP(192, 168, 4, 1);
+      WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
+      String ssid = "BYU DD ";
+      ssid += getMAC();
+      WiFi.softAP(ssid.c_str());
+    
+      IPAddress myIP = WiFi.softAPIP();
+      Serial.print("AP IP address: ");
+      Serial.println(myIP);
+      server.on("/", handleRoot);
+      server.on("/submit", handleSubmit);
+      server.begin();
+      Serial.println("Webserver started");
+      while (true) {
+        server.handleClient();
+        delay(100);
+      }
     }
-    IPAddress apIP(192, 168, 4, 1);
-    WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-    String ssid = "BYU DD ";
-    ssid += getMAC();
-    WiFi.softAP(ssid.c_str());
-  
-    IPAddress myIP = WiFi.softAPIP();
-    Serial.print("AP IP address: ");
-    Serial.println(myIP);
-    server.on("/", handleRoot);
-    server.on("/submit", handleSubmit);
-    server.begin();
-    Serial.println("Webserver started");
-    while (true) {
-      server.handleClient();
-      delay(100);
-    }
-  }
+  #endif
   
   //Don't write wifi info to flash
   WiFi.persistent(false);
