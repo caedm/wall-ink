@@ -6,8 +6,9 @@
 #include <GxEPD.h>
 #include <Hash.h>
 #include "debug_mode.h"
+#include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.04c"
+#define FIRMWARE_VERSION "2.05c"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -16,6 +17,10 @@
 #define ONE_HOUR 3600
 #define INITIAL_CRASH_SLEEP_SECONDS 15
 #define INITIAL_DRIFT_SECONDS 30
+#define ADMIN_PASSWORD "password123"
+extern "C" {
+#include "user_interface.h"
+}
 
 #if DEVICE_TYPE == 0
   #define X_RES 384
@@ -170,6 +175,9 @@ void crash(String reason) {
     
     Serial.print("SSID:");
     Serial.println(WiFi.SSID());
+    
+    Serial.print("Free heap:");
+    Serial.println(system_get_free_heap_size());
   
     Serial.print("Router MAC Address:");
     Serial.println(WiFi.BSSIDstr());
@@ -348,7 +356,9 @@ void handleRoot() {
   webPage += "<label>Base URL: </label><input name='baseurl' value=\"";
   webPage += eeprom.baseURL;
   webPage += "\" length=100><br>";
-  webPage += "<label>Image Key: </label><input name='imagekey' length=100><br>";
+  webPage += "<label>Image Key: </label><input name='imagekey' value=\"";
+  webPage += eeprom.imageKey;
+  webPage += "\"length=100><br>";
   webPage += "<fieldset id=\"debug\"><legend>Debug Mode</legend><ul><li>";
   webPage += "<label for=\"on\">On</label>";
   webPage += "<input name=\"debug\" value=\"1\" type=\"radio\"></li><li>";
@@ -429,11 +439,14 @@ void setup() {
         Serial.println();
         Serial.print("Configuring access point...\n");
       }
+      display.init();
+      memcpy_P(display._buffer, admin_image, sizeof(display._buffer));
+      display.update();
       IPAddress apIP(192, 168, 4, 1);
       WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
       String ssid = "BYU DD ";
       ssid += getMAC();
-      WiFi.softAP(ssid.c_str());
+      WiFi.softAP(ssid.c_str(), ADMIN_PASSWORD);
     
       IPAddress myIP = WiFi.softAPIP();
       Serial.print("AP IP address: ");
@@ -599,6 +612,8 @@ void loop() {
               //this will happen if the mac address isn't found in the database
               if (len < 50) {
                 crash("File too small");
+                if (eeprom.debug)
+                  system_get_free_heap_size();
               }
 
               // create buffer for read
