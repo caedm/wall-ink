@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.05f"
+#define FIRMWARE_VERSION "2.05g"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -156,7 +156,7 @@ void setURL() {
 }
 
 void crash(String reason) {
-  if (rtcData.crashSleepSeconds > 3600) {
+  if (rtcData.crashSleepSeconds > 960) {
     dumpToScreen(reason);
   }
 
