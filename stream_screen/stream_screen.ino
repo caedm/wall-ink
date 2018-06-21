@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.05d"
+#define FIRMWARE_VERSION "2.05e"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -119,12 +119,6 @@ void writeEeprom() {
   EEPROM.begin(sizeof(eeprom));
   EEPROM.put(0, eeprom);
   EEPROM.end();
-  
-  // Write bad crc32 so that a new image is refreshed on reboot
-  rtcData.crc32 = calculateCRC32(((uint8_t*) &rtcData), sizeof(rtcData));
-  // Write struct with bad crc32 to RTC memory
-  if (ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
-  }
 }
 
 String getMAC() {
@@ -454,7 +448,13 @@ void setup() {
       server.on("/", handleRoot);
       server.on("/submit", handleSubmit);
       server.begin();
-      Serial.println("Webserver started");
+       
+      // Write bad crc32 so that a new image is refreshed on reboot
+      rtcData.crc32 = calculateCRC32(((uint8_t*) &rtcData), sizeof(rtcData));
+      // Write struct with bad crc32 to RTC memory
+      if (ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
+      }
+      Serial.println("Webserver started, RTC memory invalidated");
       while (true) {
         server.handleClient();
         delay(100);
