@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.05e"
+#define FIRMWARE_VERSION "2.05f"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -499,7 +499,6 @@ void setup() {
           rtcData.imageHash[i] = 0;
         rtcData.driftSeconds = INITIAL_DRIFT_SECONDS;
         rtcData.crashSleepSeconds = INITIAL_CRASH_SLEEP_SECONDS;
-        dumpToScreen("First boot");
     }
     else {
       //if we aren't there yet, sleep
