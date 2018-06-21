@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.05c"
+#define FIRMWARE_VERSION "2.05d"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -678,7 +678,6 @@ void loop() {
                             Serial.println(ESP.getCycleCount() / 80000);
                           }
                           display.init();
-                          display.setRotation(ROTATION);
                           if (eeprom.debug) {
                             Serial.print("Display initialized; time in milliseconds: ");
                             Serial.println(ESP.getCycleCount() / 80000);
@@ -693,7 +692,7 @@ void loop() {
                         if (counter == 255) {
                           if (lastEntry) {
                             for (int16_t i = cursor; i < cursor + 255; i++) {
-                              display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
+                              display.drawPixel(i%X_RES, y+i/X_RES, !lastEntry);
                             }
                           }
                           cursor += 255;
@@ -702,7 +701,7 @@ void loop() {
                         } else {
                           if (lastEntry) {
                             for (int16_t i = cursor; i < cursor + counter; i++) {
-                              display.drawPixel(i%X_RES, y+i/X_RES, lastEntry);
+                              display.drawPixel(i%X_RES, y+i/X_RES, !lastEntry);
                             }
                           }
                           lastEntry ^= 0x01;
@@ -744,7 +743,7 @@ void loop() {
               bool imageVerified = true;
               for (int i = 0; i < 20; i++) {
                 if (rtcData.imageHash[i] != finalHash[i]) {
-                  imageVerified = false;
+                 imageVerified = false;
                 }
               }
               if (!imageVerified) {
