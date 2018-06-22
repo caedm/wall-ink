@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.05i"
+#define FIRMWARE_VERSION "2.05k"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -334,14 +334,16 @@ void handleRoot() {
   webPage += "\n -->";
   webPage += "</style>";
   webPage += "<h1>Web Configuration</h1>";
+  webPage += "<p>Firmware version: ";
+  webPage += FIRMWARE_VERSION;
   webPage += "</p><form method='get' action='submit'>";
-  webPage += "<label>SSID0: </label><input name='ssid0' value=\"";
+  webPage += "<label>Wireless SSID0: </label><input name='ssid0' value=\"";
   webPage += eeprom.ssid0;
   webPage += "\" length=20><br>";
   webPage += "<label>Password0: </label><input name='password0' value=\"";
   webPage += eeprom.password0;
   webPage += "\" length=20><br>";
-  webPage += "<label>SSID1: </label><input name='ssid1' value=\"";
+  webPage += "<label>Wireless SSID1: </label><input name='ssid1' value=\"";
   webPage += eeprom.ssid1;
   webPage += "\" length=20><br>";
   webPage += "<label>Password1: </label><input name='password1' value=\"";
