@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.05k"
+#define FIRMWARE_VERSION "2.06a"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -18,6 +18,7 @@
 #define INITIAL_CRASH_SLEEP_SECONDS 15
 #define INITIAL_DRIFT_SECONDS 30
 #define ADMIN_PASSWORD "password123"
+#define DEFAULT_IMAGE_KEY "hunter2" //if you change this here, you'll also want to change it in compressImage.cpp on the server
 extern "C" {
 #include "user_interface.h"
 }
@@ -83,6 +84,7 @@ struct {
   char ssid[20];
   char password[20];
   char imageHash[20];
+  uint32_t numErrors;
 } rtcData;
 
 struct {
@@ -138,6 +140,8 @@ void setURL() {
   if (eeprom.debug) {
     url += "_debug";
   }
+  url += "&errors=";
+  url += rtcData.numErrors;
   url += "&voltage=";
   if (eeprom.debug) {
     Serial.println("Measuring Voltage...");
@@ -156,6 +160,7 @@ void setURL() {
 }
 
 void crash(String reason) {
+  rtcData.numErrors += 1;
   if (rtcData.crashSleepSeconds > 960) {
     dumpToScreen(reason);
   }
@@ -408,11 +413,11 @@ void setup() {
     strcpy(eeprom.ssid1, "BYU-WiFi");
     strcpy(eeprom.password0, "byuwireless");
     strcpy(eeprom.password1, "");
-    strcpy(eeprom.imageKey, "hunter2");
+    strcpy(eeprom.imageKey, DEFAULT_IMAGE_KEY);
     eeprom.debug = false;
     writeEeprom();
   }
-  
+  yield();
   if (eeprom.debug) {
     Serial.begin(115200);
     Serial.print("Time in milliseconds: ");
@@ -425,7 +430,7 @@ void setup() {
         delay(100);
     }
   }
-
+  yield();
   #if ADMIN_MODE_ENABLED == 1
     //todo: replace this pin with whichever pin it is that Dean actually set the switch to use
     //activate AP mode if set to do so
@@ -501,8 +506,7 @@ void setup() {
           rtcData.imageHash[i] = 0;
         rtcData.driftSeconds = INITIAL_DRIFT_SECONDS;
         rtcData.crashSleepSeconds = INITIAL_CRASH_SLEEP_SECONDS;
-    }
-    else {
+    } else {
       //if we aren't there yet, sleep
       if (rtcData.elapsedTime + rtcData.currentTime < rtcData.nextTime) {
         sleep();
@@ -613,8 +617,9 @@ void loop() {
               //this will happen if the mac address isn't found in the database
               if (len < 50) {
                 crash("File too small");
-                if (eeprom.debug)
+                if (eeprom.debug) {
                   system_get_free_heap_size();
+                }
               }
 
               // create buffer for read
@@ -774,18 +779,17 @@ void loop() {
                 Serial.println(ESP.getCycleCount() / 80000);
               }
               sleep();
-          if (eeprom.debug) {
-              Serial.println();
-              Serial.print("[HTTP] connection closed or file end.\n");
-          }
+              if (eeprom.debug) {
+                  Serial.println();
+                  Serial.print("[HTTP] connection closed or file end.\n");
+              }
 
           }
       } else {
-      if (eeprom.debug) {
-          Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-          
-          crash("Error connecting to server");
-      }
+        if (eeprom.debug) {
+            Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+        }
+        crash("Error connecting to server");
       }
 
       http.end();
@@ -812,8 +816,7 @@ void loop() {
     }
 }
 
-uint32_t calculateCRC32(const uint8_t *data, size_t length)
-{
+uint32_t calculateCRC32(const uint8_t *data, size_t length) {
   uint32_t crc = 0xffffffff;
   while (length--) {
     uint8_t c = *data++;
