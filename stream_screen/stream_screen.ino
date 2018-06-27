@@ -17,7 +17,7 @@
 #define ONE_HOUR 3600
 #define INITIAL_CRASH_SLEEP_SECONDS 15
 #define INITIAL_DRIFT_SECONDS 30
-#define ADMIN_PASSWORD "password123"
+#define ADMIN_PASSWORD "password123"  //this is the wifi password required to connect to the device when it's in admin mode
 #define DEFAULT_IMAGE_KEY "hunter2" //if you change this here, you'll also want to change it in compressImage.cpp on the server
 extern "C" {
 #include "user_interface.h"
@@ -502,6 +502,7 @@ void setup() {
         rtcData.currentTime = 0;
         rtcData.nextTime = 0;
         rtcData.elapsedTime = 0;
+        rtcData.numErrors = 0;
         for (int i = 0; i < 20; i++)
           rtcData.imageHash[i] = 0;
         rtcData.driftSeconds = INITIAL_DRIFT_SECONDS;
