@@ -1,0 +1,10 @@
+0   No error
+1   Wifi connection is weak
+2   File too small or not found
+3   Image failed verification test
+4   WL_CONNECT_FAILED
+5   WL_NO_SSID_AVAIL
+6   WL_CONNECTION_LOST
+7   Error connecting to wifi
+
+3-digit error codes correspond with http error codes.

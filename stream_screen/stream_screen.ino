@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.06a"
+#define FIRMWARE_VERSION "2.07a"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -84,7 +84,7 @@ struct {
   char ssid[20];
   char password[20];
   char imageHash[20];
-  uint32_t numErrors;
+  uint32_t errorCode;
 } rtcData;
 
 struct {
@@ -140,8 +140,8 @@ void setURL() {
   if (eeprom.debug) {
     url += "_debug";
   }
-  url += "&errors=";
-  url += rtcData.numErrors;
+  url += "&error=";
+  url += rtcData.errorCode;
   url += "&voltage=";
   if (eeprom.debug) {
     Serial.println("Measuring Voltage...");
@@ -160,7 +160,6 @@ void setURL() {
 }
 
 void crash(String reason) {
-  rtcData.numErrors += 1;
   if (rtcData.crashSleepSeconds > 960) {
     dumpToScreen(reason);
   }
@@ -502,7 +501,7 @@ void setup() {
         rtcData.currentTime = 0;
         rtcData.nextTime = 0;
         rtcData.elapsedTime = 0;
-        rtcData.numErrors = 0;
+        rtcData.errorCode = 0;
         for (int i = 0; i < 20; i++)
           rtcData.imageHash[i] = 0;
         rtcData.driftSeconds = INITIAL_DRIFT_SECONDS;
@@ -564,6 +563,7 @@ void loop() {
 
       if (WiFi.RSSI() < -90) {
         crash("Connection Weak");
+        rtcData.errorCode = 1;
       }
 
       //Save wifi connection info
@@ -587,10 +587,11 @@ void loop() {
       }
       // start connection and send HTTP header
       int httpCode = http.GET();
-      if(httpCode > 0) {
+      if(httpCode == 200) {
           // HTTP header has been send and Server response header has been handled
           if (httpCode == 404) {
             crash("Error:404");
+            errorCode = 404;
           }
         if (eeprom.debug) {
           Serial.printf("[HTTP] GET... code: %d\n", httpCode);
@@ -617,7 +618,8 @@ void loop() {
 
               //this will happen if the mac address isn't found in the database
               if (len < 50) {
-                crash("File too small");
+                crash("File too small or not found");
+                errorCode = 2;
                 if (eeprom.debug) {
                   system_get_free_heap_size();
                 }
@@ -764,6 +766,7 @@ void loop() {
                 WiFi.forceSleepBegin();
                 delay(10);
                 crash("Image failed verification test");
+                errorCode = 3;
                 sleep();
               }
               
@@ -774,6 +777,7 @@ void loop() {
                 memcpy_P(display._buffer, debug_image, 1120);
               }
               display.update();
+              rtcData.errorCode = 0;
               if (eeprom.debug) {
                 Serial.println("Display updated, sleeping");
                 Serial.print("Time in milliseconds: ");
@@ -784,22 +788,25 @@ void loop() {
                   Serial.println();
                   Serial.print("[HTTP] connection closed or file end.\n");
               }
-
           }
       } else {
         if (eeprom.debug) {
             Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
         }
         crash("Error connecting to server");
+        errorCode = httpCode;
       }
 
       http.end();
     } else if (WiFi.status() == WL_CONNECT_FAILED) {
       crash("WiFi connection failed");
+      errorCode = 4;
     } else if (WiFi.status() == WL_NO_SSID_AVAIL) {
       crash("SSID not available");
+      errorCode = 5;
     } else if (WiFi.status() == WL_CONNECTION_LOST) {
       crash("WiFi connection lost");
+      errorCode = 6;
     }
     attempts++;
     if (attempts == 15) {
@@ -810,6 +817,7 @@ void loop() {
       //WiFiMulti.run();
     } else if (attempts > 40) {
       crash("Error connecting to WiFi");
+      errorCode = 7;
     }
     delay(500);
     if (eeprom.debug) {
