@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.07a"
+#define FIRMWARE_VERSION "2.07b"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -591,7 +591,7 @@ void loop() {
           // HTTP header has been send and Server response header has been handled
           if (httpCode == 404) {
             crash("Error:404");
-            errorCode = 404;
+            rtcData.errorCode = 404;
           }
         if (eeprom.debug) {
           Serial.printf("[HTTP] GET... code: %d\n", httpCode);
@@ -619,7 +619,7 @@ void loop() {
               //this will happen if the mac address isn't found in the database
               if (len < 50) {
                 crash("File too small or not found");
-                errorCode = 2;
+                rtcData.errorCode = 2;
                 if (eeprom.debug) {
                   system_get_free_heap_size();
                 }
@@ -766,7 +766,7 @@ void loop() {
                 WiFi.forceSleepBegin();
                 delay(10);
                 crash("Image failed verification test");
-                errorCode = 3;
+                rtcData.errorCode = 3;
                 sleep();
               }
               
@@ -794,19 +794,19 @@ void loop() {
             Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
         }
         crash("Error connecting to server");
-        errorCode = httpCode;
+        rtcData.errorCode = httpCode;
       }
 
       http.end();
     } else if (WiFi.status() == WL_CONNECT_FAILED) {
       crash("WiFi connection failed");
-      errorCode = 4;
+      rtcData.errorCode = 4;
     } else if (WiFi.status() == WL_NO_SSID_AVAIL) {
       crash("SSID not available");
-      errorCode = 5;
+      rtcData.errorCode = 5;
     } else if (WiFi.status() == WL_CONNECTION_LOST) {
       crash("WiFi connection lost");
-      errorCode = 6;
+      rtcData.errorCode = 6;
     }
     attempts++;
     if (attempts == 15) {
@@ -817,7 +817,7 @@ void loop() {
       //WiFiMulti.run();
     } else if (attempts > 40) {
       crash("Error connecting to WiFi");
-      errorCode = 7;
+      rtcData.errorCode = 7;
     }
     delay(500);
     if (eeprom.debug) {
