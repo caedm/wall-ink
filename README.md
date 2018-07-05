@@ -18,16 +18,16 @@ The wall-ink project has several components
 * See the [Wall-Ink-Server](https://github.com/caedm/wall-ink-server) project project for server side code
 
 # Circuit
-The wall-ink circuit contains a the following sections: the screen, the ESP8266 microprocessor, power regulation, deep-sleep wakeup, voltage monitoring, user-input, and firmware update circuitry.  See the [[wiki]] for a full explanation of this circuitry.
+The wall-ink circuit contains a the following sections: the screen, the ESP8266 microprocessor, power regulation, deep-sleep wakeup, voltage monitoring, user-input, and firmware update circuitry.  See the [wiki](https://github.com/caedm/wall-ink/wiki/circuit) for a full explanation of this circuitry.
 <img src="https://i.imgur.com/yiEXq9H.png" width="500">
 
 # PCB layout
-A two-sided PCB layout is part of the project including both the Eagle board and the gerber files.  The gerber files can simply be uploaded to a company to make the boards as seen here without any knowledge of PCB layout or design.  You will however, need to purchase all of [[the parts]]  and solder them to the board.  There are only two surface mount components, which are large enough to be hand soldered.
+A two-sided PCB layout is part of the project including both the Eagle board and the gerber files.  The gerber files can simply be uploaded to a company to make the boards as seen here without any knowledge of PCB layout or design.  You will however, need to purchase all of [the parts](https://github.com/caedm/wall-ink/wiki/partslist)  and solder them to the board.  There are only two surface mount components, which are large enough to be hand soldered.
 
 <img src="https://i.imgur.com/uxgWvmZ.png" width="300"><img src="https://i.imgur.com/cEBkq4L.png" width="360">
 
 # Parts list
-A full list of parts and suppliers can be found in the [[wiki]].
+A full list of parts and suppliers can be found in the [wiki parts list](https://github.com/caedm/wall-ink/wiki/partslist).
 
 # Firmware
 Although wall-ink was originally designed as a delivery system for room schedules, it can be used to deliver any image to an e-ink screen.  When the wall-ink firmware [[boots]], it attaches to WiFi, gets a DHCP address, and then contacts the [[web server]] it has been configured to pull an [[image]] from.  It downloads an image, along with instructions of how long to [[sleep]] for.  It can sleep for a few seconds, or many hours.  The firmware was written in C using the Arduino IDE.
