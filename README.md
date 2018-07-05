@@ -23,6 +23,7 @@ The wall-ink circuit contains a the following sections: the screen, the ESP8266 
 
 # PCB layout
 A two-sided PCB layout is part of the project including both the Eagle board and the gerber files.  The gerber files can simply be uploaded to a company to make the boards as seen here without any knowledge of PCB layout or design.  You will however, need to purchase all of [[the parts]]  and solder them to the board.  There are only two surface mount components, which are large enough to be hand soldered.
+
 <img src="https://i.imgur.com/uxgWvmZ.png" width="300"><img src="https://i.imgur.com/cEBkq4L.png" width="360">
 
 # Parts list
