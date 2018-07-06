@@ -22,6 +22,7 @@ To get a wall-ink device up and running, you will need to build a hardware devic
 There are a couple different methods to get started with wall-ink hardware
 ### Option 1: 
 Purchase an esp8266 development board, and a Waveshare e-ink display with HAT and make a [prototype on a breadboard].  This method will get you up and running quickly with a minimal cost for a proof-of-concept project.  You will be able to power and flash the development board via USB from your computer.  These development boards are designed to be easy to use, but are not meant for battery operated production devices.  The integrated USB to serial chip on the development board alone will drain your batteries in a matter of days.  If you want your device to operate for years on end off of batteries, you will need to build the wall-ink circuit that has been specifically designed for low power draw.
+<img src="https://i.imgur.com/ZOxfITl.png" width="300">
 ### Option 2:  
 Buy all the [loose parts](https://github.com/caedm/wall-ink/wiki/partslist) and build the wall-ink circuit.  If you want to start with the real thing, there is no reason why you can't just go straight to it.
 ## Flashing the firmware on to the ESP8266
