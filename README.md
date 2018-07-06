@@ -19,7 +19,7 @@ The wall-ink project has several components:
 # Getting started
 To get a wall-ink device up and running, you will need to build a hardware device and flash it with the latest firmware.  Then you will need to install a [small web service] to host the content for your device to display.  Last, you will need to [configure your new hardware device] to access your wireless network and find your webserver.
 ## Building the hardware
-There are a few different methods to get started with wall-ink hardware
+There are a couple different methods to get started with wall-ink hardware
 ### Option 1: 
 Purchase an esp8266 development board, and a Waveshare e-ink display with HAT and make a [prototype on a breadboard].  This method will get you up and running quickly with a minimal cost for a proof-of-concept project.  You will be able to power and flash the development board via USB from your computer.  These development boards are designed to be easy to use, but are not meant for battery operated production devices.  The integrated USB to serial chip on the development board alone will drain your batteries in a matter of days.  If you want your device to operate for years on end off of batteries, you will need to build the wall-ink circuit that has been specifically designed for low power draw.
 ### Option 2:  
