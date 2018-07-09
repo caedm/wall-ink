@@ -21,7 +21,7 @@ The wall-ink project has several components:
 The [ESP8266 by Espressif Systems](https://en.wikipedia.org/wiki/ESP8266) is similar to an Arduino, but has 10uA deep-sleep function and built-in WiFi with a full TCP/IP stack.  The ESP8266 is also low cost, and fully compatible with the Arduino IDE.  So for under $3, you get a microprocessor that is perfect for this project.
 
 ## Why e-ink?  Is it a touch display?
-In order to run the device for over a year on a set of AA batteries, we needed to use the lowest power screen possible. Since e-ink screens can hold their image even with the power removed, this is by far the lowest power option out there.  To keep the cost down, the class of e-ink screens we chose from Waveshare / Good Display do not have touch screen capability.
+In order to run the device for over a year on a set of AA batteries, we needed to use the lowest power screen possible. Since e-ink screens can hold their image even with the power removed, this is by far the lowest power option out there.  To keep the cost down, the type of [e-ink screens] we chose from Waveshare / Good Display does not have touch screen capability.
 
 ## What skills and tools  will I need to complete this project?
 Building the wall-ink hardware will require some basic soldering 3d printing skills and tools.  Some basic electronics experience would be useful when trying to find all the right [parts.](https://github.com/caedm/wall-ink/wiki/partslist) The software end of the project will require the use of the Arduino IDE to flash the firmware, and a simple web server to run the [wall-ink-server](https://github.com/caedm/wall-ink-server). 
