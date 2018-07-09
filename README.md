@@ -6,7 +6,11 @@ Wall-ink was architected from the ground up to be an enterprise friendly, secure
 The original design parameters were to display a room schedule electronically with no wires, at cheapest possible price point.  No Ethernet, no power wires, in a low-cost footprint.  The resulting project has produced a AA powered WiFi E-ink device for under $100 (US), when parts are purchased in bulk, where the batteries last a year or two.  
 
 The wall-ink project along with the [Wall-Ink-Server](https://github.com/caedm/wall-ink-server) include everything necessary to build the entire e-ink display system. 
- 
+
+# What is an ESP8266 and why did you choose that microprocessor?
+The [ESP8266 by Espressif Systems](https://en.wikipedia.org/wiki/ESP8266) is similar to an Arduino, but has 10uA deep-sleep function and built-in WiFi with a full TCP/IP stack.  The ESP8266 is also low cost, and fully compatible with the Arduino IDE.  So for under $3, you get a microprocessor that is perfect for this project.
+
+
 # Summary
 The wall-ink project has several components:
 
