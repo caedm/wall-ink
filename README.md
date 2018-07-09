@@ -41,7 +41,8 @@ Buy all the [loose parts](https://github.com/caedm/wall-ink/wiki/partslist) and 
 
 <img src="https://i.imgur.com/KjgHKaQ.png" width="400">
 
-## Flashing the firmware on to the ESP8266
+## Building and flashing the firmware on to the ESP8266
+See the detailed instructions in the [building and flashing firmware wiki article](https://github.com/caedm/wall-ink/wiki/firmware#Building) for instructions on uploading the firmware.
 
 ## Install and configure the web server code
 See the documentation for the [wall-ink-server](https://github.com/caedm/wall-ink-server) companion project.
