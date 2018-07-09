@@ -37,13 +37,13 @@ Purchase an esp8266 development board, and a Waveshare e-ink display with HAT an
 
 
 ### Option 2:  
-Buy all the [loose parts](https://github.com/caedm/wall-ink/wiki/partslist) and [build the wall-ink circuit].  If you want to start with the real thing, there is no reason why you can't just go straight to it.
+Buy all the [loose parts](https://github.com/caedm/wall-ink/wiki/partslist) and [[build the wall-ink circuit]].  If you want to start with the real thing, there is no reason why you can't just go straight to it.
 
 <img src="https://i.imgur.com/KjgHKaQ.png" width="400">
 
 ## Flashing the firmware on to the ESP8266
 
 ## Install and configure the web server code
-
+See the documentation for the [wall-ink-server](https://github.com/caedm/wall-ink-server) companion project.
 ## Configure the device
 Use [Admin mode] to set up the wireless client, the image key, and the URL to get images from.
