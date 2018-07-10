@@ -12,8 +12,8 @@ The wall-ink project has several components:
 
 * [Circuit and electronics](https://github.com/caedm/wall-ink/wiki/circuit), including Eagle schematic, PCB layout and gerber files
 * List of necessary [parts](https://github.com/caedm/wall-ink/wiki/partslist) to build the project
-* Arduino IDE [[Firmware]] for the ESP8266 microcontroller
-* [[CAD files]] to 3D print case
+* Arduino IDE [Firmware](https://github.com/caedm/wall-ink/wiki/firmware) for the ESP8266 microcontroller
+* CAD files to 3D print the [Case](https://github.com/caedm/wall-ink/wiki/firmware)
 * See the [Wall-Ink-Server](https://github.com/caedm/wall-ink-server) project project for server side code
 
 # FAQ
@@ -21,13 +21,13 @@ The wall-ink project has several components:
 The [ESP8266 by Espressif Systems](https://en.wikipedia.org/wiki/ESP8266) is similar to an Arduino, but has 10uA deep-sleep function and built-in WiFi with a full TCP/IP stack.  The ESP8266 is also low cost, and fully compatible with the Arduino IDE.  So for under $3, you get a microprocessor that is perfect for this project.
 
 ## Why e-ink?  Is it a touch display?
-In order to run the device for over a year on a set of AA batteries, we needed to use the lowest power screen possible. Since e-ink screens can hold their image even with the power removed, this is by far the lowest power option out there.  To keep the cost down, the type of [e-ink screens] we chose from Waveshare / Good Display does not have touch screen capability.
-
+In order to run the device for over a year on a set of AA batteries, we needed to use the lowest power screen possible. Since e-ink screens can hold their image even with the power removed, this is by far the lowest power option out there.  To keep the cost down, the type of [E-ink screens](https://en.wikipedia.org/wiki/E-ink) we chose from Waveshare / Good Display does not have touch screen capability.
+<img src="https://i.imgur.com/BPVGRtd.png" width="320">
 ## What skills and tools  will I need to complete this project?
-Some basic electronics experience could be useful if building a [development board prototype]. Building an actuall wall-ink device will require some basic soldering and 3d printing, and some electronics experience would be useful to help identify and purchase all the right [parts.](https://github.com/caedm/wall-ink/wiki/partslist) The software end of the project will require the use of the Arduino IDE to flash the firmware, and a simple web server to run the [wall-ink-server](https://github.com/caedm/wall-ink-server). 
+Some basic electronics experience could be useful if building a [development board prototype](https://github.com/caedm/wall-ink/wiki/development-board-prototype). Building an actuall wall-ink device will require some basic soldering and 3d printing, and some electronics experience would be useful to help identify and purchase all the right [parts.](https://github.com/caedm/wall-ink/wiki/partslist) The software end of the project will require the use of the Arduino IDE to flash the firmware, and a simple web server to run the [wall-ink-server](https://github.com/caedm/wall-ink-server). 
 
 # Getting started
-To get a wall-ink device up and running, you will need to build a hardware device and flash it with the latest firmware.  Then you will need to install a [small web service] to host the content for your device to display.  Last, you will need to [configure your new hardware device] to access your wireless network and find your webserver.
+To get a wall-ink device up and running, you will need to build a hardware device and flash it with the latest firmware.  Then you will need to install a [small web service] to host the content for your device to display.  Last, you will need to [configure your new hardware device](https://github.com/caedm/wall-ink/wiki/Admin-mode) to access your wireless network and find your webserver.
 ## Building the hardware
 There are a couple different methods to get started with wall-ink hardware
 ### Option 1: 
