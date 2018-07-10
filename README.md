@@ -1,7 +1,7 @@
 # Introduction
 Wall-ink was architected from the ground up to be an enterprise friendly, secure, and completely open solution to display room schedules at a University.  The product could however be developed to display other images for advertising, directions, staff directories, retail pricing, etc.  Currently, the [wall-ink-server](https://github.com/caedm/wall-ink-server) can display schedules from the open source [Booked scheduler](https://www.bookedscheduler.com), and Google Calendar.  It can also display static images.  With additional development, other scheduler integrations or functions are possible.  The hardware simply displays whatever image it is given.  
 
-<img src="https://i.imgur.com/bR7Etyk.png" width="283"><img src="https://i.imgur.com/3haDzCW.png" width="320"><img src="https://i.imgur.com/uxgWvmZ.png" width="236"><img src="https://i.imgur.com/bR7Etyk.png" width="283">
+<img src="https://i.imgur.com/etozOAa.png" width="300"><img src="https://i.imgur.com/uxgWvmZ.png" width="236"><img src="https://i.imgur.com/bR7Etyk.png" width="283">
 
 The original design parameters were to display a room schedule electronically with no wires, at the cheapest possible price point.  No Ethernet, no power wires, in a low-cost footprint.  The resulting project has produced a AA powered WiFi E-ink device for under $100 (US), when parts are purchased in bulk, where the batteries last a year or two.  
 
@@ -22,7 +22,7 @@ The [ESP8266 by Espressif Systems](https://en.wikipedia.org/wiki/ESP8266) is sim
 
 ## Why e-ink?  Is it a touch display?
 In order to run the device for over a year on a set of AA batteries, we needed to use the lowest power screen possible. Since e-ink screens can hold their image even with the power removed, this is by far the lowest power option out there.  To keep the cost down, the type of [e-ink screens] we chose from Waveshare / Good Display does not have touch screen capability.
-<img src="https://i.imgur.com/etozOAa.png" width="300">
+<img src="https://i.imgur.com/3haDzCW.png" width="320">
 ## What skills and tools  will I need to complete this project?
 Some basic electronics experience could be useful if building a [development board prototype]. Building an actuall wall-ink device will require some basic soldering and 3d printing, and some electronics experience would be useful to help identify and purchase all the right [parts.](https://github.com/caedm/wall-ink/wiki/partslist) The software end of the project will require the use of the Arduino IDE to flash the firmware, and a simple web server to run the [wall-ink-server](https://github.com/caedm/wall-ink-server). 
 
