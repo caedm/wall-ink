@@ -24,7 +24,7 @@ The [ESP8266 by Espressif Systems](https://en.wikipedia.org/wiki/ESP8266) is sim
 In order to run the device for over a year on a set of AA batteries, we needed to use the lowest power screen possible. Since e-ink screens can hold their image even with the power removed, this is by far the lowest power option out there.  To keep the cost down, the type of [E-ink screens](https://en.wikipedia.org/wiki/E-ink) we chose from Waveshare / Good Display does not have touch screen capability.
 <img src="https://i.imgur.com/BPVGRtd.png" width="320">
 ## What skills and tools  will I need to complete this project?
-Some basic electronics experience could be useful if building a [development board prototype](https://github.com/caedm/wall-ink/wiki/development-board-prototype). Building an actuall wall-ink device will require some basic soldering and 3d printing, and some electronics experience would be useful to help identify and purchase all the right [parts.](https://github.com/caedm/wall-ink/wiki/partslist) The software end of the project will require the use of the Arduino IDE to flash the firmware, and a simple web server to run the [wall-ink-server](https://github.com/caedm/wall-ink-server). 
+Some basic electronics experience could be useful if building a [development board prototype](https://github.com/caedm/wall-ink/wiki/development-board-prototype). Building an actuall [wall-ink device](https://github.com/caedm/wall-ink/wiki/wall-ink-device) will require some basic soldering and 3d printing, and some electronics experience would be useful to help identify and purchase all the right [parts.](https://github.com/caedm/wall-ink/wiki/partslist) The software end of the project will require the use of the Arduino IDE to flash the firmware, and a simple web server to run the [wall-ink-server](https://github.com/caedm/wall-ink-server). 
 
 # Getting started
 To get a wall-ink device up and running, you will need to build a hardware device and flash it with the latest firmware.  Then you will need to install a [small web service] to host the content for your device to display.  Last, you will need to [configure your new hardware device](https://github.com/caedm/wall-ink/wiki/Admin-mode) to access your wireless network and find your webserver.
@@ -47,4 +47,4 @@ See the detailed instructions in the [building and flashing firmware wiki articl
 ## Install and configure the web server code
 See the documentation for the [wall-ink-server](https://github.com/caedm/wall-ink-server) companion project.
 ## Configure the device
-Use [Admin mode] to set up the wireless client, the image key, and the URL to get images from.
+Use [Admin mode](https://github.com/caedm/Admin-mode) to set up the wireless client, the image key, and the URL to get images from.
