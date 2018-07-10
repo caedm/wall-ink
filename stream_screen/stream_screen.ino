@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.07b"
+#define FIRMWARE_VERSION "2.07c"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -19,6 +19,11 @@
 #define INITIAL_DRIFT_SECONDS 30
 #define ADMIN_PASSWORD "password123"  //this is the wifi password required to connect to the device when it's in admin mode
 #define DEFAULT_IMAGE_KEY "hunter2" //if you change this here, you'll also want to change it in compressImage.cpp on the server
+#define SSID0 "BYUSecure"
+#define PASSWORD0 "byuwireless"
+#define SSID1 "BYU-WiFi"
+#define PASSWORD1 ""
+
 extern "C" {
 #include "user_interface.h"
 }
@@ -408,10 +413,10 @@ void setup() {
     } else {
       strcpy(eeprom.baseURL, "http://door-display.groups.et.byu.net/get_image.php");
     }
-    strcpy(eeprom.ssid0, "BYUSecure");
-    strcpy(eeprom.ssid1, "BYU-WiFi");
-    strcpy(eeprom.password0, "byuwireless");
-    strcpy(eeprom.password1, "");
+    strcpy(eeprom.ssid0, SSID0);
+    strcpy(eeprom.ssid1, SSID1);
+    strcpy(eeprom.password0, PASSWORD0);
+    strcpy(eeprom.password1, PASSWORD1);
     strcpy(eeprom.imageKey, DEFAULT_IMAGE_KEY);
     eeprom.debug = false;
     writeEeprom();
@@ -574,6 +579,8 @@ void loop() {
       
       // configure server and url
       setURL();
+      Serial.println("URL: ");
+      Serial.println(url);
         
       if (eeprom.debug) {
         Serial.print("[HTTP] begin...\n");
