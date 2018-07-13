@@ -15,6 +15,7 @@ The wall-ink project has several components:
 * Arduino IDE [Firmware](https://github.com/caedm/wall-ink/wiki/firmware) for the ESP8266 microcontroller
 * CAD files to 3D print the [Case](https://github.com/caedm/wall-ink/wiki/firmware)
 * See the [Wall-Ink-Server](https://github.com/caedm/wall-ink-server) project project for server side code
+<img src="https://i.imgur.com/W1smB71.png">
 
 # FAQ
 ## What is an ESP8266 and why did you choose that microprocessor?
