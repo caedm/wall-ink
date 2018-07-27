@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.07c"
+#define FIRMWARE_VERSION "2.08a"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -650,15 +650,54 @@ void loop() {
                         if (!initialized) {           //Grab the stuff off the front of the file
                           initialized = true;
                           uint32_t predictedTime = rtcData.currentTime + rtcData.elapsedTime;
-                          rtcData.currentTime = *(uint32_t*) buff;
-                          if (rtcData.nextTime == *(uint32_t*) (buff + 4)) {
+
+                          //hash the time info, hash the image key, then hash the two hashes
+                          //the server does the same thing, and the client compares them
+                          uint8_t* timeHash = (uint8_t*) malloc(40);
+                          sha1(buff + 20, 8, timeHash);
+                          sha1(eeprom.imageKey, strlen(eeprom.imageKey)+1, timeHash+20);
+                          uint8_t* finalTimeHash = (uint8_t*) malloc(20);
+                          sha1(timeHash, 40, finalTimeHash);
+                          Serial.println("remote timeHash: ");
+                          for (int i = 0; i < 20; i++) {
+                            Serial.print(String(buff[i], HEX));
+                          }
+                          Serial.println("\nlocal timeHash: ");
+                          for (int i = 0; i < 20; i++) {
+                            Serial.print(String(finalTimeHash[i], HEX));
+                          }
+                          Serial.println("");
+                          Serial.println("");
+                          bool timeVerified = true;
+                          for (int i = 0; i < 20; i++) {
+                            if (buff[i] != finalTimeHash[i]) {
+                             timeVerified = false;
+                            }
+                          }
+                          if (!timeVerified) {
+                            if (eeprom.debug) {
+                              Serial.println("Time info did not pass verification, sleeping");
+                              Serial.print("Time in milliseconds: ");
+                              Serial.println(ESP.getCycleCount() / 80000);
+                            }
+                            WiFi.disconnect();
+                            delay(10);
+                            WiFi.forceSleepBegin();
+                            delay(10);
+                            crash("Time data failed verification test");
+                            rtcData.errorCode = 3;
+                            sleep();
+                          }
+                          
+                          rtcData.currentTime = *(uint32_t*) buff + 20;
+                          if (rtcData.nextTime == *(uint32_t*) (buff + 24)) {
                             
                           } else if (rtcData.currentTime > predictedTime && rtcData.elapsedTime > 100) {
                             rtcData.driftSeconds -= 1;
                           } else if (rtcData.currentTime < predictedTime && rtcData.elapsedTime > 100) {
                             rtcData.driftSeconds += 1;
                           }
-                          rtcData.nextTime = *(uint32_t*) (buff + 4);
+                          rtcData.nextTime = *(uint32_t*) (buff + 24);
                           rtcData.elapsedTime = 0;
                           if (eeprom.debug) {
                             Serial.print("Updated currentTime: ");
@@ -672,13 +711,13 @@ void loop() {
                             Serial.println("");
                             Serial.print("New imageHash: ");
                             for (int i = 0; i < 20; i++) {
-                              Serial.print(String(*(uint8_t*) (buff + 8+i), HEX));
+                              Serial.print(String(*(uint8_t*) (buff + 28+i), HEX));
                             }
                             Serial.println("");
                           }
                           bool imageMatch = true;
                           for (int i = 0; i < 20; i++) {
-                            if (rtcData.imageHash[i] != *(char*) (buff+8+i)) {
+                            if (rtcData.imageHash[i] != *(char*) (buff+28+i)) {
                               imageMatch = false;
                             }
                           }
@@ -698,11 +737,11 @@ void loop() {
                             Serial.print("Display initialized; time in milliseconds: ");
                             Serial.println(ESP.getCycleCount() / 80000);
                           }
-                          memcpy(rtcData.imageHash, buff+8, 20);
+                          memcpy(rtcData.imageHash, buff+28, 20);
                           rtcData.crashSleepSeconds = 15;
-                          lastEntry = buff[28];
+                          lastEntry = buff[48];
                           lastEntry = lastEntry % 2;
-                          offset += 29;
+                          offset += 49;
                         }
                         counter = buff[offset];
                         if (counter == 255) {
@@ -743,7 +782,7 @@ void loop() {
                 Serial.print("Time in milliseconds: ");
                 Serial.println(ESP.getCycleCount() / 80000);
               }
-              //hash the image, hash the password, then hash the two hashes
+              //hash the image, hash the image key, then hash the two hashes
               //the server does the same thing, and the client compares them
               uint8_t* hash = (uint8_t*) malloc(40);
               sha1(display._buffer, X_RES*Y_RES/8, hash);
