@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.08a"
+#define FIRMWARE_VERSION "2.08b"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -407,6 +407,7 @@ void setup() {
 
   //if EEPROM data is bad, regenerate it
   if (!readEeprom()) {
+    eeprom.debug = false;
     eeprom.wifiProfile1Active = true;
     if (eeprom.debug) {
       strcpy(eeprom.baseURL, "http://door-display.groups.et.byu.net/test/get_image.php");
@@ -418,7 +419,6 @@ void setup() {
     strcpy(eeprom.password0, PASSWORD0);
     strcpy(eeprom.password1, PASSWORD1);
     strcpy(eeprom.imageKey, DEFAULT_IMAGE_KEY);
-    eeprom.debug = false;
     writeEeprom();
   }
   yield();
@@ -689,7 +689,7 @@ void loop() {
                             sleep();
                           }
                           
-                          rtcData.currentTime = *(uint32_t*) buff + 20;
+                          rtcData.currentTime = *(uint32_t*) (buff + 20);
                           if (rtcData.nextTime == *(uint32_t*) (buff + 24)) {
                             
                           } else if (rtcData.currentTime > predictedTime && rtcData.elapsedTime > 100) {
