@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.08b"
+#define FIRMWARE_VERSION "2.08c"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -684,7 +684,7 @@ void loop() {
                             delay(10);
                             WiFi.forceSleepBegin();
                             delay(10);
-                            crash("Time data failed verification test");
+                            crash("Time data or password failed verification test");
                             rtcData.errorCode = 3;
                             sleep();
                           }
@@ -803,7 +803,7 @@ void loop() {
               }
               if (!imageVerified) {
                 if (eeprom.debug) {
-                  Serial.println("Image did not pass verification, sleeping");
+                  Serial.println("Image or password failed verification test, sleeping");
                   Serial.print("Time in milliseconds: ");
                   Serial.println(ESP.getCycleCount() / 80000);
                 }
