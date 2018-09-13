@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.08c"
+#define FIRMWARE_VERSION "2.08d"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -466,10 +466,13 @@ void setup() {
       if (ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
       }
       Serial.println("Webserver started, RTC memory invalidated");
-      while (true) {
+      unsigned int timer = 0;
+      while (timer < 10000) {
         server.handleClient();
         delay(100);
+        ++timer;
       }
+      ESP.deepSleep(200 * 1000000);
     }
   #endif
   
