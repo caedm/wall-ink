@@ -48,4 +48,4 @@ See the detailed instructions in the [building and flashing firmware wiki articl
 ## Install and configure the web server code
 See the documentation for the [wall-ink-server](https://github.com/caedm/wall-ink-server) companion project.
 ## Configure the device
-Use [Admin mode](https://github.com/caedm/Admin-mode) to set up the wireless client, the image key, and the URL to get images from.
+Use [Admin mode](https://github.com/caedm/wall-ink/wiki/Admin-mode) to set up the wireless client, the image key, and the URL to get images from.
