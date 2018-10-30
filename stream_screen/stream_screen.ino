@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "admin_mode.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.08c"
+#define FIRMWARE_VERSION "2.09a"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -752,7 +752,7 @@ void loop() {
                           }
                           cursor += 255;
                         } else if (counter == 0) {
-                          lastEntry ^= 0x01;
+                          //lastEntry ^= 0x01;
                         } else {
                           if (lastEntry) {
                             for (int16_t i = cursor; i < cursor + counter; i++) {
