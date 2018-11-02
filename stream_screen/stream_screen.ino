@@ -7,8 +7,9 @@
 #include <Hash.h>
 #include "debug_mode.h"
 #include "admin_mode.h"
+#include "credentials.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "2.09a"
+#define FIRMWARE_VERSION "3.00a"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -17,12 +18,6 @@
 #define ONE_HOUR 3600
 #define INITIAL_CRASH_SLEEP_SECONDS 15
 #define INITIAL_DRIFT_SECONDS 30
-#define ADMIN_PASSWORD "password123"  //this is the wifi password required to connect to the device when it's in admin mode
-#define DEFAULT_IMAGE_KEY "hunter2" //if you change this here, you'll also want to change it in compressImage.cpp on the server
-#define SSID0 "BYUSecure"
-#define PASSWORD0 "byuwireless"
-#define SSID1 "BYU-WiFi"
-#define PASSWORD1 ""
 
 extern "C" {
 #include "user_interface.h"
@@ -610,11 +605,8 @@ void loop() {
                 Serial.print("Time in milliseconds: ");
                 Serial.println(ESP.getCycleCount() / 80000);
               }
-              int cursor = 0;
-              uint8_t prevColor = 0;
-              uint8_t lastEntry;
-              int16_t counter = 0;
-              int16_t y = 0;
+              uint32_t cursor = 0;
+              uint8_t eightPixels;
               boolean initialized = false;
               // get length of document (is -1 when Server sends no Content-Length header)
               int len = http.getSize();
@@ -739,32 +731,15 @@ void loop() {
                           }
                           memcpy(rtcData.imageHash, buff+28, 20);
                           rtcData.crashSleepSeconds = 15;
-                          lastEntry = buff[48];
-                          lastEntry = lastEntry % 2;
-                          offset += 49;
+                          offset += 48;
                         }
-                        counter = buff[offset];
-                        if (counter == 255) {
-                          if (lastEntry) {
-                            for (int16_t i = cursor; i < cursor + 255; i++) {
-                              display.drawPixel(i%X_RES, y+i/X_RES, !lastEntry);
-                            }
+                        eightPixels = buff[offset];
+                        if (cursor < X_RES*Y_RES) {
+                          for (uint8_t i = 0; i < 8; i++) {
+                            if ((eightPixels >> (7-i)) & 0x01)
+                              display.drawPixel((cursor+i)%X_RES, (cursor+i)/X_RES, GxEPD_BLACK);
                           }
-                          cursor += 255;
-                        } else if (counter == 0) {
-                          //lastEntry ^= 0x01;
-                        } else {
-                          if (lastEntry) {
-                            for (int16_t i = cursor; i < cursor + counter; i++) {
-                              display.drawPixel(i%X_RES, y+i/X_RES, !lastEntry);
-                            }
-                          }
-                          lastEntry ^= 0x01;
-                          cursor += counter;
-                        }
-                        if (cursor >= X_RES) {
-                          cursor -= X_RES;
-                          y++;
+                          cursor+=8;
                         }
                       }
                       if(len > 0) {
