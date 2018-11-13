@@ -9,7 +9,7 @@
 #include "admin_mode.h"
 #include "credentials.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "3.00a"
+#define FIRMWARE_VERSION "3.01a"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 1950
@@ -142,6 +142,10 @@ void setURL() {
   }
   url += "&error=";
   url += rtcData.errorCode;
+  url += "&width=";
+  url += X_RES;
+  url += "&height=";
+  url += Y_RES;
   url += "&voltage=";
   if (eeprom.debug) {
     Serial.println("Measuring Voltage...");
@@ -405,9 +409,9 @@ void setup() {
     eeprom.debug = false;
     eeprom.wifiProfile1Active = true;
     if (eeprom.debug) {
-      strcpy(eeprom.baseURL, "http://door-display.groups.et.byu.net/test/get_image.php");
+      strcpy(eeprom.baseURL, "http://wallink.groups.et.byu.net/test/get_image.php");
     } else {
-      strcpy(eeprom.baseURL, "http://door-display.groups.et.byu.net/get_image.php");
+      strcpy(eeprom.baseURL, "http://wallink.groups.et.byu.net/get_image.php");
     }
     strcpy(eeprom.ssid0, SSID0);
     strcpy(eeprom.ssid1, SSID1);
