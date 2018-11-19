@@ -23,6 +23,10 @@ The [ESP8266 by Espressif Systems](https://en.wikipedia.org/wiki/ESP8266) is sim
 
 ## Why e-ink?  Is it a touch display?
 In order to run the device for over a year on a set of AA batteries, we needed to use the lowest power screen possible. Since e-ink screens can hold their image even with the power removed, this is by far the lowest power option out there.  To keep the cost down, the type of [E-ink screens](https://en.wikipedia.org/wiki/E-ink) we chose from Waveshare / Good Display does not have touch screen capability.
+
+## What size e-ink screens are supported?
+The real limitation of screen resolution support is the RAM available on the esp8266.  Some plugins like the static image plugin and the simple text plugin can handle any screen size dynamically.  Other plugins like the booked and google plugins that use the genral scheduling functions are hard-coded for Waveshare 7.5" screens at 640x384 and Waveshare 4.2" screens at 400x300 pixels.
+
 <img src="https://i.imgur.com/BPVGRtd.png" width="320">
 ## What skills and tools  will I need to complete this project?
 Some basic electronics experience could be useful if building a [development board prototype](https://github.com/caedm/wall-ink/wiki/development-board-prototype). Building an actual [wall-ink device](https://github.com/caedm/wall-ink/wiki/wall-ink-device) will require some basic soldering and 3d printing, and some electronics experience would be useful to help identify and purchase all the right [parts.](https://github.com/caedm/wall-ink/wiki/partslist) The software end of the project will require the use of the Arduino IDE to flash the firmware, and a simple web server to run the [wall-ink-server](https://github.com/caedm/wall-ink-server). 
