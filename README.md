@@ -24,8 +24,8 @@ The [ESP8266 by Espressif Systems](https://en.wikipedia.org/wiki/ESP8266) is sim
 ## Why e-ink?  Is it a touch display?
 In order to run the device for over a year on a set of AA batteries, we needed to use the lowest power screen possible. Since e-ink screens can hold their image even with the power removed, this is by far the lowest power option out there.  To keep the cost down, the type of [E-ink screens](https://en.wikipedia.org/wiki/E-ink) we chose from Waveshare / Good Display does not have touch screen capability.
 
-## What size e-ink screens are supported?
-The real limitation of screen resolution support is the RAM available on the esp8266.  Some plugins like the static image plugin and the simple text plugin can handle any screen size dynamically.  Other plugins like the booked and google plugins that use the genral scheduling functions are hard-coded for Waveshare 7.5" screens at 640x384 and Waveshare 4.2" screens at 400x300 pixels.
+## What e-ink screens are supported?
+The real limitation of screen resolution support is the RAM available on the esp8266.  Some server-side plugins like the static image plugin and the simple text plugin can handle any screen size dynamically.  Other plugins like the booked and google plugins that use the genral scheduling functions are hard-coded for Waveshare 7.5" screens at 640x384 and Waveshare 4.2" screens at 400x300 pixels.  There is currently no support for color displays.
 
 <img src="https://i.imgur.com/BPVGRtd.png" width="320">
 
