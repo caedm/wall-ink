@@ -9,7 +9,7 @@
 #include "admin_mode.h"
 #include "credentials.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "3.01e"
+#define FIRMWARE_VERSION "3.01f"
 #define BASE_URL "http://wallink.groups.et.byu.net/get_image.php"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
@@ -166,7 +166,7 @@ void crash(String reason) {
         rtcData.crashSleepSeconds = ONE_DAY;
     }
     
-    if (rtcData.crashSleepSeconds > 960) {
+    if (rtcData.crashSleepSeconds > 4000) {
         dumpToScreen(reason);
     }
 
