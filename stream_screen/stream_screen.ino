@@ -9,7 +9,7 @@
 #include "admin_mode.h"
 #include "credentials.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "3.01d"
+#define FIRMWARE_VERSION "3.01e"
 #define BASE_URL "http://wallink.groups.et.byu.net/get_image.php"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
@@ -160,6 +160,12 @@ void setURL() {
 }
 
 void crash(String reason) {
+  
+    rtcData.crashSleepSeconds *= 4;
+    if (rtcData.crashSleepSeconds > ONE_DAY) {
+        rtcData.crashSleepSeconds = ONE_DAY;
+    }
+    
     if (rtcData.crashSleepSeconds > 960) {
         dumpToScreen(reason);
     }
@@ -168,6 +174,8 @@ void crash(String reason) {
         dumpToScreen(reason);
     }
 
+    rtcData.nextTime += rtcData.crashSleepSeconds;
+    
     if (eeprom.debug) {
         Serial.println(reason);
 
@@ -199,33 +207,35 @@ void crash(String reason) {
         Serial.print("Last successful attempt at:");
         Serial.println(rtcData.currentTime);
 
-        Serial.print("Original planned wakeup time:");
-        Serial.println(rtcData.nextTime);
-
         Serial.print("Last unsuccessful attempt at:");
         Serial.println(rtcData.currentTime + rtcData.elapsedTime);
 
+        //Serial.print("Next planned wakeup time:");
+        //Serial.println(rtcData.nextTime);
+
         Serial.print("Next attempt in:");
-        Serial.print(rtcData.crashSleepSeconds * 4);
+        Serial.print(rtcData.crashSleepSeconds);
         Serial.println(" seconds");
     }
 
-    rtcData.crashSleepSeconds *= 4;
-    if (rtcData.crashSleepSeconds > ONE_DAY) {
-        rtcData.crashSleepSeconds = ONE_DAY;
+    uint32_t sleepTime = rtcData.crashSleepSeconds;
+    if (sleepTime > MAX_SLEEP) {
+        sleepTime = MAX_SLEEP;
     }
-    rtcData.elapsedTime += rtcData.crashSleepSeconds;
+
+    rtcData.elapsedTime += sleepTime;
 
     // Update CRC32 of data
     rtcData.crc32 = calculateCRC32(((uint8_t*) &rtcData) + 4, sizeof(rtcData) - 4);
-    // Write struct to RTC memory
+    
+    // Write struct to RTC memory; this if statement has important side-effects; do not remove it!
     if (ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
         //Serial.println("Write: ");
         //printMemory();
         //Serial.println();
     }
 
-    ESP.deepSleep(rtcData.crashSleepSeconds * 1000000);
+    ESP.deepSleep(sleepTime * 1000000);
 
 }
 
@@ -312,8 +322,8 @@ void dumpToScreen(String reason) {
     display.print("Last successful attempt at:");
     display.println(rtcData.currentTime);
 
-    display.print("Original planned wakeup time:");
-    display.println(rtcData.nextTime);
+    //display.print("Original planned wakeup time:");
+    //display.println(rtcData.nextTime);
 
     display.print("Last unsuccessful attempt at:");
     display.println(rtcData.currentTime + rtcData.elapsedTime);
