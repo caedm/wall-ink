@@ -51,6 +51,6 @@ Buy all the [loose parts](https://github.com/caedm/wall-ink/wiki/partslist) and 
 See the detailed instructions in the [building and flashing firmware wiki article](https://github.com/caedm/wall-ink/wiki/firmware#Building) for instructions on uploading the firmware.
 
 ## Install and configure the web server code
-See the documentation for the [wall-ink-server](https://github.com/caedm/wall-ink-server) companion project.
+See the documentation for the [wall-ink-server](https://github.com/caedm/wall-ink-server) companion project.  If desired, you could write a much simpler server that was not designed for an enterprise as long as it returned files in the correct ["wink format"](https://github.com/caedm/wall-ink-server/wiki/Wall-ink-image-formats-and-image-handling#wink-file-format).
 ## Configure the device
 Use [Admin mode](https://github.com/caedm/wall-ink/wiki/Admin-mode) to set up the wireless client, the image key, and the URL to get images from.
