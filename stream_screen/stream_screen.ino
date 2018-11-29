@@ -9,7 +9,7 @@
 #include "admin_mode.h"
 #include "credentials.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "3.01f"
+#define FIRMWARE_VERSION "3.02a"
 #define BASE_URL "http://wallink.groups.et.byu.net/get_image.php"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
@@ -695,6 +695,12 @@ void loop() {
                                 sleep();
                             }
 
+                            //protect against replay attacks
+                            if (rtcData.currentTime >= *(uint32_t*) (buff + 20)) {
+                              rtcData.errorCode = 8;
+                              crash("Error 8: Replay attack detected");
+                            }
+                            
                             rtcData.currentTime = *(uint32_t*) (buff + 20);
                             if (rtcData.nextTime == *(uint32_t*) (buff + 24)) {
 
