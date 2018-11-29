@@ -1,5 +1,5 @@
 # Introduction
-Wall-ink was architected from the ground up to be an enterprise friendly, secure, and completely open solution to display room schedules at a University.  The product could however be developed to display other images for advertising, directions, staff directories, retail pricing, etc.  Currently, the [wall-ink-server](https://github.com/caedm/wall-ink-server) can display schedules from the open source [Booked scheduler](https://www.bookedscheduler.com), and Google Calendar.  It can also rotate through a collection of static images.  With additional development, other scheduler integrations or functions are possible.  The hardware simply displays whatever image it is given.  Development for putting images on the e-ink screen is made simpler by allowing the processing to occur on the server side, and not on the device.
+Wall-ink was architected from the ground up to be an enterprise friendly, secure, and completely open solution to display room schedules at a university.  The product could, however, be developed to display other images for advertising, directions, staff directories, retail pricing, etc.  Currently, the [wall-ink-server](https://github.com/caedm/wall-ink-server) can display schedules from the open source [Booked scheduler](https://www.bookedscheduler.com), and Google Calendar.  It can also rotate through a collection of static images.  With additional development, other scheduler integrations or functions are possible.  The hardware simply displays whatever image it is given.  Development for putting images on the e-ink screen is made simpler by allowing the processing to occur on the server side, and not on the device.
 
 <img src="https://i.imgur.com/etozOAa.png" width="300"><img src="https://i.imgur.com/uxgWvmZ.png" width="236"><img src="https://i.imgur.com/bR7Etyk.png" width="283">
 
@@ -14,7 +14,7 @@ The wall-ink project has several components:
 * List of necessary [parts](https://github.com/caedm/wall-ink/wiki/partslist) to build the project
 * Arduino IDE [Firmware](https://github.com/caedm/wall-ink/wiki/firmware) for the ESP8266 microcontroller
 * CAD files to 3D print the [Case](https://github.com/caedm/wall-ink/wiki/firmware)
-* See the [Wall-Ink-Server](https://github.com/caedm/wall-ink-server) project project for server side code
+* See the [Wall-Ink-Server](https://github.com/caedm/wall-ink-server) project for server side code
 <img src="https://i.imgur.com/W1smB71.png">
 
 # FAQ
@@ -30,7 +30,7 @@ The real limitation of screen resolution support is the RAM available on the esp
 <img src="https://i.imgur.com/BPVGRtd.png" width="320">
 
 ## What skills and tools  will I need to complete this project?
-Some basic electronics experience could be useful if building a [development board prototype](https://github.com/caedm/wall-ink/wiki/development-board-prototype). Building an actual [wall-ink device](https://github.com/caedm/wall-ink/wiki/wall-ink-device) will require some basic soldering and 3d printing, and some electronics experience would be useful to help identify and purchase all the right [parts.](https://github.com/caedm/wall-ink/wiki/partslist) The software end of the project will require the use of the Arduino IDE to flash the firmware, and a simple web server to run the [wall-ink-server](https://github.com/caedm/wall-ink-server). 
+Some basic electronics experience could be useful if building a [development board prototype](https://github.com/caedm/wall-ink/wiki/development-board-prototype). Building an actual [wall-ink device](https://github.com/caedm/wall-ink/wiki/wall-ink-device) will require some basic soldering and 3d printing, and some electronics experience would be useful to help identify and purchase all the right [parts](https://github.com/caedm/wall-ink/wiki/partslist). The software end of the project will require the use of the Arduino IDE to flash the firmware, and a simple web server to run the [wall-ink-server](https://github.com/caedm/wall-ink-server). The wall-ink-server project has only been tested with Apache, but should work with other server software that supports PHP.
 
 # Getting started
 To get a wall-ink device up and running, you will need to build a hardware device and flash it with the latest firmware.  Then you will need to install a [small web service] to host the content for your device to display.  Last, you will need to [configure your new hardware device](https://github.com/caedm/wall-ink/wiki/Admin-mode) to access your wireless network and find your webserver.
@@ -51,6 +51,6 @@ Buy all the [loose parts](https://github.com/caedm/wall-ink/wiki/partslist) and 
 See the detailed instructions in the [building and flashing firmware wiki article](https://github.com/caedm/wall-ink/wiki/firmware#Building) for instructions on uploading the firmware.
 
 ## Install and configure the web server code
-See the documentation for the [wall-ink-server](https://github.com/caedm/wall-ink-server) companion project.
+See the documentation for the [wall-ink-server](https://github.com/caedm/wall-ink-server) companion project.  If desired, you could write a much simpler server that was not designed for an enterprise as long as it returned files in the correct ["wink format"](https://github.com/caedm/wall-ink-server/wiki/Wall-ink-image-formats-and-image-handling#wink-file-format).  The wall-ink-server project is designed to handle hundreds of devices using various plugins to collect data and present images to the screens.  It includes Nagios monitoring scripts, battery monitors and other tools to handle a large fleet of wall-ink devices.
 ## Configure the device
 Use [Admin mode](https://github.com/caedm/wall-ink/wiki/Admin-mode) to set up the wireless client, the image key, and the URL to get images from.
