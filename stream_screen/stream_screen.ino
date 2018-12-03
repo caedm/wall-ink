@@ -1,4 +1,4 @@
-//Sketch uses esp8266 board version 2.3.0
+//Sketch uses esp8266 board version 2.4.2
 //Sketch uses the GxEPD library from https://github.com/ZinggJM/GxEPD
 //The GxEPD library needs to be modified such that display._buffer is public instead of private. This needs to be done for the driver of each screen type you want to support.
 //You may notice that this program has a few memory leaks. Those were left there on purpose, since the device reboots so often.
@@ -9,11 +9,11 @@
 #include "admin_mode.h"
 #include "credentials.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "3.02a"
+#define FIRMWARE_VERSION "4.00a"
 #define BASE_URL "http://wallink.groups.et.byu.net/get_image.php"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
-#define MAX_SLEEP 1950
+#define MAX_SLEEP 10800
 #define MIN_SLEEP 10
 #define ONE_DAY 86400
 #define ONE_HOUR 3600
@@ -644,6 +644,12 @@ void loop() {
             // get tcp stream
             WiFiClient * stream = http.getStreamPtr();
 
+            //sha1( sha1(raw_image) . sha1(chunk2 . chunk3) . sha1(mac_address) . sha1(image_key) )
+            //this will be filled out at various points below.
+            //the server does the same thing, and the client compares the results.
+            uint8_t* hash = (uint8_t*) malloc(80);
+            uint8_t* serverEverythingHash = (uint8_t*) malloc(20);
+
             // read all data from server
             while(http.connected() && (len > 0 || len == -1)) {
                 // get available data size
@@ -657,23 +663,31 @@ void loop() {
                             initialized = true;
                             uint32_t predictedTime = rtcData.currentTime + rtcData.elapsedTime;
 
-                            //hash the time info, hash the image key, then hash the two hashes
+                            //sha1( sha1(chunk 2 . chunk 3) . sha1(mac_address) . sha1(image_key) )
                             //the server does the same thing, and the client compares them
-                            uint8_t* timeHash = (uint8_t*) malloc(40);
-                            sha1(buff + 20, 8, timeHash);
-                            sha1(eeprom.imageKey, strlen(eeprom.imageKey)+1, timeHash+20);
+                            sha1(buff + 20, 8, hash);
+                            char* mac_char_array = (char*) malloc(20);
+                            String mac = WiFi.macAddress();
+                            while (mac.indexOf(':') != -1) {
+                              mac.remove(mac.indexOf(':'), 1);
+                            }
+                            mac.toCharArray(mac_char_array, 13);
+                            sha1(mac_char_array, strlen(mac_char_array), hash+20);
+                            sha1(eeprom.imageKey, strlen(eeprom.imageKey), hash+40);
                             uint8_t* finalTimeHash = (uint8_t*) malloc(20);
-                            sha1(timeHash, 40, finalTimeHash);
-                            Serial.println("remote timeHash: ");
-                            for (int i = 0; i < 20; i++) {
-                                Serial.print(String(buff[i], HEX));
+                            sha1(hash, 60, finalTimeHash);
+                            if (eeprom.debug) {
+                              Serial.println("remote timeHash: ");
+                              for (int i = 0; i < 20; i++) {
+                                  Serial.print(String(buff[i], HEX));
+                              }
+                              Serial.println("\nlocal timeHash: ");
+                              for (int i = 0; i < 20; i++) {
+                                  Serial.print(String(finalTimeHash[i], HEX));
+                              }
+                              Serial.println("");
+                              Serial.println("");
                             }
-                            Serial.println("\nlocal timeHash: ");
-                            for (int i = 0; i < 20; i++) {
-                                Serial.print(String(finalTimeHash[i], HEX));
-                            }
-                            Serial.println("");
-                            Serial.println("");
                             bool timeVerified = true;
                             for (int i = 0; i < 20; i++) {
                                 if (buff[i] != finalTimeHash[i]) {
@@ -750,8 +764,9 @@ void loop() {
                                 Serial.println(ESP.getCycleCount() / 80000);
                             }
                             memcpy(rtcData.imageHash, buff+28, 20);
+                            memcpy(serverEverythingHash, buff+48, 20);
                             rtcData.crashSleepSeconds = 15;
-                            offset += 48;
+                            offset += 68;
                         }
                         eightPixels = buff[offset];
                         if (cursor < X_RES*Y_RES) {
@@ -777,22 +792,43 @@ void loop() {
                 Serial.print("Time in milliseconds: ");
                 Serial.println(ESP.getCycleCount() / 80000);
             }
-            //hash the image, hash the image key, then hash the two hashes
+            //sha1( sha1(mac_address) . sha1(raw_image) . sha1(image_key) )
             //the server does the same thing, and the client compares them
-            uint8_t* hash = (uint8_t*) malloc(40);
-            sha1(display._buffer, X_RES*Y_RES/8, hash);
-            sha1(eeprom.imageKey, strlen(eeprom.imageKey)+1, hash+20);
-            uint8_t* finalHash = (uint8_t*) malloc(20);
-            sha1(hash, 40, finalHash);
-            Serial.println("Hash: ");
-            for (int i = 0; i < 20; i++) {
-                Serial.print(String(finalHash[i], HEX));
+            //move image key hash to the end
+            memcpy(hash+60, hash+40, 20);
+            //hash the image
+            sha1(display._buffer, X_RES*Y_RES/8, hash+40);
+            uint8_t* finalImageHash = (uint8_t*) malloc(20);
+            sha1(hash+20, 60, finalImageHash);
+            if (eeprom.debug) {
+              Serial.println("local image hash: ");
+              for (int i = 0; i < 20; i++) {
+                  Serial.print(String(finalImageHash[i], HEX));
+              }
+              Serial.println("");
+              Serial.println("");
             }
-            Serial.println("");
-            Serial.println("");
             bool imageVerified = true;
             for (int i = 0; i < 20; i++) {
-                if (rtcData.imageHash[i] != finalHash[i]) {
+                if (rtcData.imageHash[i] != finalImageHash[i]) {
+                    imageVerified = false;
+                }
+            }
+            //sha1( sha1(time_data) . sha1(mac_address) . sha1(raw_image) . sha1(image_key) )
+            //the server does the same thing, and the client compares them
+            //this is used to defend against certain types of replay attacks
+            uint8_t* finalEverythingHash = (uint8_t*) malloc(20);
+            sha1(hash, 80, finalEverythingHash);
+            if (eeprom.debug) {
+              Serial.println("local hash with everything: ");
+              for (int i = 0; i < 20; i++) {
+                  Serial.print(String(finalEverythingHash[i], HEX));
+              }
+              Serial.println("");
+              Serial.println("");
+            }
+            for (int i = 0; i < 20; i++) {
+                if (serverEverythingHash[i] != finalEverythingHash[i]) {
                     imageVerified = false;
                 }
             }
