@@ -9,11 +9,11 @@
 #include "admin_mode.h"
 #include "credentials.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "4.00a"
+#define FIRMWARE_VERSION "4.00b"
 #define BASE_URL "http://wallink.groups.et.byu.net/get_image.php"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
-#define MAX_SLEEP 10800
+#define MAX_SLEEP 3600
 #define MIN_SLEEP 10
 #define ONE_DAY 86400
 #define ONE_HOUR 3600
@@ -479,6 +479,32 @@ void readRTC() {
             while(WiFiMulti.run() != WL_CONNECTED) {
                 Serial.print(".");
                 delay(500);
+                if (WiFi.status() == WL_CONNECT_FAILED) {
+                    rtcData.errorCode = 4;
+                    crash("WiFi connection failed");
+                } else if (WiFi.status() == WL_NO_SSID_AVAIL) {
+                    rtcData.errorCode = 5;
+                    crash("SSID not available");
+                } else if (WiFi.status() == WL_CONNECTION_LOST) {
+                    rtcData.errorCode = 6;
+                    crash("WiFi connection lost");
+                }
+                attempts++;
+                if (attempts == 15) {
+                    //WiFi.disconnect();
+                    delay(1);
+                    //WiFiMulti.addAP(WIFI_SSID0, WIFI_PASSWORD0);
+                    //WiFiMulti.addAP(WIFI_SSID1, WIFI_PASSWORD1);
+                    //WiFiMulti.run();
+                } else if (attempts > 40) {
+                    rtcData.errorCode = 7;
+                    crash("Error connecting to WiFi");
+                }
+                delay(500);
+                if (eeprom.debug) {
+                    String a = "Attempt " + String(attempts);
+                    Serial.println(a);
+                }
             }
             rtcData.currentTime = 0;
             rtcData.nextTime = 0;
@@ -505,6 +531,32 @@ void readRTC() {
                 while(WiFiMulti.run() != WL_CONNECTED) {
                     Serial.print(".");
                     delay(500);
+                    if (WiFi.status() == WL_CONNECT_FAILED) {
+                        rtcData.errorCode = 4;
+                        crash("WiFi connection failed");
+                    } else if (WiFi.status() == WL_NO_SSID_AVAIL) {
+                        rtcData.errorCode = 5;
+                        crash("SSID not available");
+                    } else if (WiFi.status() == WL_CONNECTION_LOST) {
+                        rtcData.errorCode = 6;
+                        crash("WiFi connection lost");
+                    }
+                    attempts++;
+                    if (attempts == 15) {
+                        //WiFi.disconnect();
+                        delay(1);
+                        //WiFiMulti.addAP(WIFI_SSID0, WIFI_PASSWORD0);
+                        //WiFiMulti.addAP(WIFI_SSID1, WIFI_PASSWORD1);
+                        //WiFiMulti.run();
+                    } else if (attempts > 40) {
+                        rtcData.errorCode = 7;
+                        crash("Error connecting to WiFi");
+                    }
+                    delay(500);
+                    if (eeprom.debug) {
+                        String a = "Attempt " + String(attempts);
+                        Serial.println(a);
+                    }
                 }
             } else {
                 WiFi.begin(rtcData.ssid, rtcData.password, rtcData.channel, rtcData.bssid);
@@ -897,7 +949,8 @@ void loop() {
     }
     delay(500);
     if (eeprom.debug) {
-        Serial.print(".");
+        String a = "Attempt " + String(attempts);
+        Serial.println(a);
     }
 }
 
