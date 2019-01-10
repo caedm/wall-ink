@@ -3,7 +3,7 @@ Wall-ink was architected from the ground up to be a scalable, [secure](https://g
 
 <img src="https://i.imgur.com/etozOAa.png" width="300"><img src="https://i.imgur.com/uxgWvmZ.png" width="236"><img src="https://i.imgur.com/bR7Etyk.png" width="283">
 
-The original design parameters were to display a room schedule electronically with no wires, at the cheapest possible price point.  No Ethernet, no power wires, in a low-cost footprint.  The resulting project has produced a AA powered WiFi E-ink device for under $100 (US), when parts are purchased in bulk, where the [batteries last a year or two](https://github.com/caedm/wall-ink/wiki/Circuit#batteries).  
+The original design parameters of this project were to display a room schedule electronically with no wires, at the cheapest possible price point.  No Ethernet, no power wires, in a low-cost footprint.  The resulting project has produced a AA powered WiFi E-ink device for under $100 (US), when parts are purchased in bulk, where the [batteries last a year or two](https://github.com/caedm/wall-ink/wiki/Circuit#batteries).  
 
 The wall-ink project along with the [Wall-Ink-Server](https://github.com/caedm/wall-ink-server) include everything necessary to build the entire e-ink display system. 
 
