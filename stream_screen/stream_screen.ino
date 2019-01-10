@@ -9,7 +9,7 @@
 #include "admin_mode.h"
 #include "credentials.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "4.00b"
+#define FIRMWARE_VERSION "4.00c"
 #define BASE_URL "http://wallink.groups.et.byu.net/get_image.php"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
@@ -19,6 +19,8 @@
 #define ONE_HOUR 3600
 #define INITIAL_CRASH_SLEEP_SECONDS 15
 #define INITIAL_DRIFT_SECONDS 30
+#define DEBUG_ON_BY_DEFAULT false
+#define WIFI_PROFILE_1_ACTIVE_BY_DEFAULT true
 
 extern "C" {
 #include "user_interface.h"
@@ -409,6 +411,13 @@ void handleSubmit() {
 }
 
 void activateAdminMode() {
+
+    // Write bad crc32 so that a new image is refreshed on reboot
+    rtcData.crc32 = calculateCRC32(((uint8_t*) &rtcData), sizeof(rtcData));
+    // Write struct with bad crc32 to RTC memory
+    if (ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
+    }
+
     if (eeprom.debug) {
         Serial.println();
         Serial.print("Configuring access point...\n");
@@ -416,6 +425,7 @@ void activateAdminMode() {
     display.init();
     memcpy_P(display._buffer, admin_image, sizeof(display._buffer));
     display.update();
+    WiFi.mode(WIFI_AP);
     IPAddress apIP(192, 168, 4, 1);
     WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
     String ssid = "BYU DD ";
@@ -428,12 +438,6 @@ void activateAdminMode() {
     server.on("/", handleRoot);
     server.on("/submit", handleSubmit);
     server.begin();
-
-    // Write bad crc32 so that a new image is refreshed on reboot
-    rtcData.crc32 = calculateCRC32(((uint8_t*) &rtcData), sizeof(rtcData));
-    // Write struct with bad crc32 to RTC memory
-    if (ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
-    }
     Serial.println("Webserver started, RTC memory invalidated");
     while (true) {
         server.handleClient();
@@ -442,8 +446,8 @@ void activateAdminMode() {
 }
 
 void eepromSetDefault() {
-    eeprom.debug = false;
-    eeprom.wifiProfile1Active = true;
+    eeprom.debug = DEBUG_ON_BY_DEFAULT;
+    eeprom.wifiProfile1Active = WIFI_PROFILE_1_ACTIVE_BY_DEFAULT;
     strcpy(eeprom.baseURL, BASE_URL);
     strcpy(eeprom.ssid0, SSID0);
     strcpy(eeprom.ssid1, SSID1);
@@ -474,6 +478,7 @@ void readRTC() {
                 Serial.print("Time in milliseconds: ");
                 Serial.println(ESP.getCycleCount() / 80000);
             }
+            WiFi.mode(WIFI_STA);
             WiFiMulti.addAP(eeprom.ssid0, eeprom.password0);
             WiFiMulti.addAP(eeprom.ssid1, eeprom.password1);
             while(WiFiMulti.run() != WL_CONNECTED) {
@@ -528,6 +533,7 @@ void readRTC() {
                     Serial.print("Time in milliseconds: ");
                     Serial.println(ESP.getCycleCount() / 80000);
                 }
+                WiFi.mode(WIFI_STA);
                 while(WiFiMulti.run() != WL_CONNECTED) {
                     Serial.print(".");
                     delay(500);
@@ -600,7 +606,11 @@ void setup() {
     pinMode(4, INPUT_PULLUP);
     if (digitalRead(4) == LOW) {
         activateAdminMode();
+    } else {
+        WiFi.mode(WIFI_STA);
     }
+#else
+    WiFi.mode(WIFI_STA);
 #endif
 
     //Don't write wifi info to flash
