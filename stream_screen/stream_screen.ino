@@ -6,7 +6,6 @@
 #include <GxEPD.h>
 #include <Hash.h>
 #include "debug_mode.h"
-#include "admin_mode.h"
 #include "credentials.h"
 #include <pgmspace.h>
 #define FIRMWARE_VERSION "4.00d"
@@ -37,6 +36,8 @@ extern "C" {
 #define ROTATION 2
 #include <GxGDEW075T8/GxGDEW075T8.cpp>      // 7.5" b/w landscape
 #endif
+
+#include "admin_mode.h"
 
 #include <GxIO/GxIO_SPI/GxIO_SPI.cpp>
 #include <GxIO/GxIO.cpp>
