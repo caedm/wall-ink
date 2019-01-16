@@ -43,7 +43,7 @@ Purchase an esp8266 development board, and a Waveshare e-ink display with HAT an
 
 
 ### Option 2:  
-Buy all the [loose parts](https://github.com/caedm/wall-ink/wiki/partslist) and [[build the wall-ink circuit]].  If you want to start with the real thing, there is no reason why you can't just go straight to it.
+Buy all the [loose parts](https://github.com/caedm/wall-ink/wiki/partslist) and solder them to the [printed circuit board](https://github.com/caedm/wall-ink/wiki/Printed-Circuit-Board).  You will also need to [3d print a case](https://github.com/caedm/wall-ink/wiki/7.5%22-Wall-ink-case) for the project.  If you want to start with the real thing, there is no reason why you can't just go straight to it.
 
 <img src="https://i.imgur.com/KjgHKaQ.png" width="400">
 
