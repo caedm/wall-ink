@@ -9,7 +9,7 @@
 #include "credentials.h"
 #include <pgmspace.h>
 #define FIRMWARE_VERSION "4.02a"
-#define BASE_URL "http://wallink.groups.et.byu.net/get_image.php"
+#define BASE_URL "http://example.com/get_image.php"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
 #define MAX_SLEEP 3600
@@ -162,53 +162,53 @@ void setURL() {
 }
 
 void crash(String reason) {
-  
+
     ++rtcData.consecutiveCrashes;
 
     //set sleep time here
     uint32_t sleepTime;
 
     switch(rtcData.consecutiveCrashes) {
-      case 1:
-        sleepTime = 60*1;
-        break;
-      case 2:
-        sleepTime = 60*5;
-        break;
-      case 3:
-        sleepTime = 60*15;
-        break;
-      case 4:
-        sleepTime = 60*30;
-        break;
-      case 5:
-        sleepTime = 60*30;
-        break;
-      case 6:
-        sleepTime = 60*30;
-        break;
-      case 7:
-        sleepTime = 60*30;
-        break;
-      case 8:
-        sleepTime = ONE_HOUR*2;
-        break;
-      case 9:
-        sleepTime = ONE_HOUR*2;
-        break;
-      case 10:
-        sleepTime = ONE_HOUR*2;
-        break;
-      default:
-        sleepTime = ONE_HOUR*4;
+        case 1:
+            sleepTime = 60*1;
+            break;
+        case 2:
+            sleepTime = 60*5;
+            break;
+        case 3:
+            sleepTime = 60*15;
+            break;
+        case 4:
+            sleepTime = 60*30;
+            break;
+        case 5:
+            sleepTime = 60*30;
+            break;
+        case 6:
+            sleepTime = 60*30;
+            break;
+        case 7:
+            sleepTime = 60*30;
+            break;
+        case 8:
+            sleepTime = ONE_HOUR*2;
+            break;
+        case 9:
+            sleepTime = ONE_HOUR*2;
+            break;
+        case 10:
+            sleepTime = ONE_HOUR*2;
+            break;
+        default:
+            sleepTime = ONE_HOUR*4;
     }
-    
+
     if (rtcData.consecutiveCrashes > 3 || eeprom.debug) {
         dumpToScreen(reason, sleepTime);
     }
 
     rtcData.nextTime += sleepTime;
-    
+
     if (eeprom.debug) {
         Serial.println(reason);
 
@@ -254,12 +254,12 @@ void crash(String reason) {
     if (sleepTime > MAX_SLEEP) {
         sleepTime = MAX_SLEEP;
     }
-    
+
     rtcData.elapsedTime += sleepTime;
 
     // Update CRC32 of data
     rtcData.crc32 = calculateCRC32(((uint8_t*) &rtcData) + 4, sizeof(rtcData) - 4);
-    
+
     // Write struct to RTC memory; this if statement has important side-effects; do not remove it!
     if (ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
         //Serial.println("Write: ");
@@ -754,7 +754,7 @@ void loop() {
                             char* mac_char_array = (char*) malloc(20);
                             String mac = WiFi.macAddress();
                             while (mac.indexOf(':') != -1) {
-                              mac.remove(mac.indexOf(':'), 1);
+                                mac.remove(mac.indexOf(':'), 1);
                             }
                             mac.toCharArray(mac_char_array, 13);
                             sha1(mac_char_array, strlen(mac_char_array), hash+20);
@@ -762,16 +762,16 @@ void loop() {
                             uint8_t* finalTimeHash = (uint8_t*) malloc(20);
                             sha1(hash, 60, finalTimeHash);
                             if (eeprom.debug) {
-                              Serial.println("remote timeHash: ");
-                              for (int i = 0; i < 20; i++) {
-                                  Serial.print(String(buff[i], HEX));
-                              }
-                              Serial.println("\nlocal timeHash: ");
-                              for (int i = 0; i < 20; i++) {
-                                  Serial.print(String(finalTimeHash[i], HEX));
-                              }
-                              Serial.println("");
-                              Serial.println("");
+                                Serial.println("remote timeHash: ");
+                                for (int i = 0; i < 20; i++) {
+                                    Serial.print(String(buff[i], HEX));
+                                }
+                                Serial.println("\nlocal timeHash: ");
+                                for (int i = 0; i < 20; i++) {
+                                    Serial.print(String(finalTimeHash[i], HEX));
+                                }
+                                Serial.println("");
+                                Serial.println("");
                             }
                             bool timeVerified = true;
                             for (int i = 0; i < 20; i++) {
@@ -796,10 +796,10 @@ void loop() {
 
                             //protect against replay attacks
                             if (rtcData.currentTime >= *(uint32_t*) (buff + 20)) {
-                              rtcData.errorCode = 8;
-                              crash("Error 8: Replay attack detected");
+                                rtcData.errorCode = 8;
+                                crash("Error 8: Replay attack detected");
                             }
-                            
+
                             rtcData.currentTime = *(uint32_t*) (buff + 20);
                             if (rtcData.nextTime == *(uint32_t*) (buff + 24)) {
 
@@ -886,12 +886,12 @@ void loop() {
             uint8_t* finalImageHash = (uint8_t*) malloc(20);
             sha1(hash+20, 60, finalImageHash);
             if (eeprom.debug) {
-              Serial.println("local image hash: ");
-              for (int i = 0; i < 20; i++) {
-                  Serial.print(String(finalImageHash[i], HEX));
-              }
-              Serial.println("");
-              Serial.println("");
+                Serial.println("local image hash: ");
+                for (int i = 0; i < 20; i++) {
+                    Serial.print(String(finalImageHash[i], HEX));
+                }
+                Serial.println("");
+                Serial.println("");
             }
             bool imageVerified = true;
             for (int i = 0; i < 20; i++) {
@@ -905,12 +905,12 @@ void loop() {
             uint8_t* finalEverythingHash = (uint8_t*) malloc(20);
             sha1(hash, 80, finalEverythingHash);
             if (eeprom.debug) {
-              Serial.println("local hash with everything: ");
-              for (int i = 0; i < 20; i++) {
-                  Serial.print(String(finalEverythingHash[i], HEX));
-              }
-              Serial.println("");
-              Serial.println("");
+                Serial.println("local hash with everything: ");
+                for (int i = 0; i < 20; i++) {
+                    Serial.print(String(finalEverythingHash[i], HEX));
+                }
+                Serial.println("");
+                Serial.println("");
             }
             for (int i = 0; i < 20; i++) {
                 if (serverEverythingHash[i] != finalEverythingHash[i]) {
