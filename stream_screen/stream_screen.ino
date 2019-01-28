@@ -8,7 +8,7 @@
 #include "debug_mode.h"
 #include "credentials.h"
 #include <pgmspace.h>
-#define FIRMWARE_VERSION "4.01a"
+#define FIRMWARE_VERSION "4.02a"
 #define BASE_URL "http://wallink.groups.et.byu.net/get_image.php"
 #define DEVICE_TYPE 2
 #define ADMIN_MODE_ENABLED 1
@@ -16,7 +16,6 @@
 #define MIN_SLEEP 10
 #define ONE_DAY 86400
 #define ONE_HOUR 3600
-#define INITIAL_CRASH_SLEEP_SECONDS 15
 #define INITIAL_DRIFT_SECONDS 30
 #define DEBUG_ON_BY_DEFAULT false
 #define WIFI_PROFILE_1_ACTIVE_BY_DEFAULT true
@@ -76,7 +75,7 @@ struct {
     uint32_t nextTime;
     uint32_t elapsedTime;
     int32_t driftSeconds;
-    uint32_t crashSleepSeconds;
+    uint32_t consecutiveCrashes;
     uint8_t channel;  // 1 byte,   5 in total
     uint8_t bssid[6]; // 6 bytes, 11 in total
     uint8_t padding;  // 1 byte,  12 in total
@@ -164,20 +163,51 @@ void setURL() {
 
 void crash(String reason) {
   
-    rtcData.crashSleepSeconds *= 4;
-    if (rtcData.crashSleepSeconds > ONE_DAY) {
-        rtcData.crashSleepSeconds = ONE_DAY;
+    ++rtcData.consecutiveCrashes;
+
+    //set sleep time here
+    uint32_t sleepTime;
+
+    switch(rtcData.consecutiveCrashes) {
+      case 1:
+        sleepTime = 60*1;
+        break;
+      case 2:
+        sleepTime = 60*5;
+        break;
+      case 3:
+        sleepTime = 60*15;
+        break;
+      case 4:
+        sleepTime = 60*30;
+        break;
+      case 5:
+        sleepTime = 60*30;
+        break;
+      case 6:
+        sleepTime = 60*30;
+        break;
+      case 7:
+        sleepTime = 60*30;
+        break;
+      case 8:
+        sleepTime = ONE_HOUR*2;
+        break;
+      case 9:
+        sleepTime = ONE_HOUR*2;
+        break;
+      case 10:
+        sleepTime = ONE_HOUR*2;
+        break;
+      default:
+        sleepTime = ONE_HOUR*4;
     }
     
-    if (rtcData.crashSleepSeconds > 4000) {
-        dumpToScreen(reason);
+    if (rtcData.consecutiveCrashes > 3 || eeprom.debug) {
+        dumpToScreen(reason, sleepTime);
     }
 
-    if (eeprom.debug) {
-        dumpToScreen(reason);
-    }
-
-    rtcData.nextTime += rtcData.crashSleepSeconds;
+    rtcData.nextTime += sleepTime;
     
     if (eeprom.debug) {
         Serial.println(reason);
@@ -217,15 +247,14 @@ void crash(String reason) {
         //Serial.println(rtcData.nextTime);
 
         Serial.print("Next attempt in:");
-        Serial.print(rtcData.crashSleepSeconds);
+        Serial.print(sleepTime);
         Serial.println(" seconds");
     }
 
-    uint32_t sleepTime = rtcData.crashSleepSeconds;
     if (sleepTime > MAX_SLEEP) {
         sleepTime = MAX_SLEEP;
     }
-
+    
     rtcData.elapsedTime += sleepTime;
 
     // Update CRC32 of data
@@ -262,8 +291,8 @@ void sleep() {
         Serial.println(rtcData.nextTime);
         Serial.print("elapsedTime: ");
         Serial.println(rtcData.elapsedTime);
-        Serial.print("crashSleepSeconds: ");
-        Serial.println(rtcData.crashSleepSeconds);
+        Serial.print("consecutiveCrashes: ");
+        Serial.println(rtcData.consecutiveCrashes);
     }
 
     if (sleepTime + rtcData.driftSeconds < MIN_SLEEP) {
@@ -289,7 +318,7 @@ void sleep() {
     ESP.deepSleep((sleepTime + rtcData.driftSeconds) * 1000000);
 }
 
-void dumpToScreen(String reason) {
+void dumpToScreen(String reason, uint32_t sleepTime) {
     display.init();
     display.setRotation(ROTATION);
     display.fillScreen(GxEPD_WHITE);
@@ -332,7 +361,7 @@ void dumpToScreen(String reason) {
     display.println(rtcData.currentTime + rtcData.elapsedTime);
 
     display.print("Next attempt in:");
-    display.print(rtcData.crashSleepSeconds * 4);
+    display.print(sleepTime);
     display.println(" seconds");
 
     display.update();
@@ -512,14 +541,14 @@ void readRTC() {
             for (int i = 0; i < 20; i++)
                 rtcData.imageHash[i] = 0;
             rtcData.driftSeconds = INITIAL_DRIFT_SECONDS;
-            rtcData.crashSleepSeconds = INITIAL_CRASH_SLEEP_SECONDS;
+            rtcData.consecutiveCrashes = 0;
         } else {
             //if we aren't there yet, sleep
             if (rtcData.elapsedTime + rtcData.currentTime < rtcData.nextTime) {
                 sleep();
             }
             randomSeed(ESP.getCycleCount());
-            if (random(30) == 1 || rtcData.crashSleepSeconds != INITIAL_CRASH_SLEEP_SECONDS) {
+            if (random(30) == 1 || rtcData.consecutiveCrashes != 0) {
                 WiFiMulti.addAP(eeprom.ssid0, eeprom.password0);
                 WiFiMulti.addAP(eeprom.ssid1, eeprom.password1);
                 if (eeprom.debug) {
@@ -803,7 +832,7 @@ void loop() {
                                     imageMatch = false;
                                 }
                             }
-                            if (imageMatch && rtcData.crashSleepSeconds == 15) {
+                            if (imageMatch && rtcData.consecutiveCrashes == 0) {
                                 WiFi.disconnect();
                                 delay(10);
                                 WiFi.forceSleepBegin();
@@ -821,7 +850,7 @@ void loop() {
                             }
                             memcpy(rtcData.imageHash, buff+28, 20);
                             memcpy(serverEverythingHash, buff+48, 20);
-                            rtcData.crashSleepSeconds = 15;
+                            rtcData.consecutiveCrashes = 0;
                             offset += 68;
                         }
                         eightPixels = buff[offset];
