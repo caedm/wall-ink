@@ -18,6 +18,10 @@ The wall-ink project has several components:
 <img src="https://i.imgur.com/W1smB71.png">
 
 # FAQ
+
+## What hardware does wall-ink run on and where do I get it?
+The wall-ink project is a hardware, firmware, and software build.  To date, we are not aware of any off-the-shelf commercial products that will do everything that the [wall-ink device] (https://github.com/caedm/wall-ink/wiki/7.5%22-Wall-ink-device) does.  There are plenty of ESP8266 devices out there, including ones that sleep, but the hardware as described here is specifically designed to run the wall-ink firmware, sleep, use very little power, fit in the supplied 3D printable case, and update a Waveshare e-ink screen.
+
 ## What is an ESP8266 and why did you choose that microprocessor?
 The [ESP8266 by Espressif Systems](https://en.wikipedia.org/wiki/ESP8266) is similar to an Arduino, but has 10uA deep-sleep function and built-in WiFi with a full TCP/IP stack.  The ESP8266 is also low cost, and fully compatible with the Arduino IDE.  So for under $3, you get a microprocessor that is perfect for this project.
 
