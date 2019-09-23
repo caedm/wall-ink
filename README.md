@@ -39,7 +39,7 @@ Using a central server for controlling what is displayed on wall-ink devices was
 ## Can Wall-ink devices talk to a webserver using https?
 The short answer is no.  There are libraries available for an esp8266 to talk to a webserver securely, but [there is not enough RAM onboard](https://github.com/caedm/wall-ink/wiki/Wall-ink-Memory#ram) to run the neccessary encryption code.  If security is a concern, please refer to the wiki articles about [device security](https://github.com/caedm/wall-ink/wiki/Device-security) and [wall-ink server security considerations](https://github.com/caedm/wall-ink-server/wiki/Security-considerations#image-security).
 
-## Will a Wall-ink device connect to my enterprise WiFi?
+## Will a Wall-ink device connect to enterprise WiFi?
 The short answer is maybe.  The ESP8266 WiFi client firmware has been tested to work with WPA2-PSK but does not appear to work with WPA2 Enterprise (including Eduroam). Some enterprises offer an additional "guest" network SSID with limited internal connectivity to handle embedded IOT devices as a solution to this problem.  Before going to the trouble of building this whole project and purchasing a screen, you could purchase an ESP8266 devkit and try connecting to your company's WiFi. 
 
 ## What skills and tools  will I need to complete this project?
